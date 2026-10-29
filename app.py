@@ -8,6 +8,9 @@ No data leaves this machine: the index is built from documents/ at startup.
 from __future__ import annotations
 
 import html
+import json
+import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -17,7 +20,40 @@ ENGINE = build_engine()
 PORT = 8000
 
 
-def page(query: str = "", results: list | None = None) -> bytes:
+def web_summary(query: str):
+    """Best-effort Wikipedia summary for a person/topic. None on any failure.
+
+    This is the only external call the local app makes, and only when you
+    search. Local documents are still searched privately on your machine.
+    """
+    try:
+        search_url = (
+            "https://en.wikipedia.org/w/api.php?action=query&list=search"
+            f"&srsearch={urllib.parse.quote(query)}&format=json"
+        )
+        req = urllib.request.Request(search_url, headers={"User-Agent": "PrivateSearch/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            top = json.load(resp)["query"]["search"][0]
+        title = top["title"]
+        req = urllib.request.Request(
+            "https://en.wikipedia.org/api/rest_v1/page/summary/"
+            + urllib.parse.quote(title),
+            headers={"User-Agent": "PrivateSearch/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.load(resp)
+        return {
+            "title": data.get("title", title),
+            "description": data.get("description", ""),
+            "extract": data.get("extract", ""),
+            "image": (data.get("thumbnail") or {}).get("source", ""),
+            "url": (data.get("content_urls") or {}).get("desktop", {}).get("page", ""),
+        }
+    except Exception:
+        return None
+
+
+def page(query: str = "", results: list | None = None, web: dict | None = None) -> bytes:
     q = html.escape(query, quote=True)
     body = f"""<!doctype html>
 <html><head><meta charset="utf-8">
@@ -30,11 +66,29 @@ button {{ padding: 10px 16px; font-size: 16px; }}
 small {{ color: #666; }}
 </style></head><body>
 <h1>Private Search</h1>
-<p><small>Runs locally. Only indexes files in <code>documents/</code>.
-No external calls, no tracking.</small></p>
+<p><small>Runs locally. Local documents are indexed from <code>documents/</code>
+only. A web card below (Wikipedia / Wikimedia Commons / YouTube links)
+is fetched only when you search, to show info, photos and videos
+for a person or topic.</small></p>
 <form><input name="q" value="{q}" placeholder="Search your documents…" autofocus>
 <button>Search</button></form>
 """
+    if query and web and web.get("extract"):
+        enc = urllib.parse.quote(query)
+        img = (
+            f'<img src="{html.escape(web["image"])}" style="width:180px;border-radius:12px">'
+            if web.get("image") else ""
+        )
+        body += (
+            f'<div style="border:1px solid #ddd;border-radius:12px;padding:16px">'
+            f'<h2>From the web — {html.escape(web["title"])}</h2>'
+            f'{img}<p>{html.escape(web["description"])}</p>'
+            f'<p>{html.escape(web["extract"])}</p>'
+            f'<p><a href="{html.escape(web["url"])}">Read more on Wikipedia</a> · '
+            f'<a href="https://commons.wikimedia.org/w/index.php?search={enc}&title=Special:MediaSearch&type=image">Photos on Commons</a> · '
+            f'<a href="https://commons.wikimedia.org/w/index.php?search={enc}&title=Special:MediaSearch&type=video">Videos on Commons</a> · '
+            f'<a href="https://www.youtube.com/results?search_query={enc}">More videos on YouTube</a></p></div>'
+        )
     if query:
         if not results:
             body += f"<p>No results for <b>{q}</b>.</p>"
@@ -55,7 +109,8 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query).get("q", [""])[0]
         results = ENGINE.search(query) if query.strip() else None
-        data = page(query, results)
+        web = web_summary(query) if query.strip() else None
+        data = page(query, results, web)
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))

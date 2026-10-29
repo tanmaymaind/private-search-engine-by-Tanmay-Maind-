@@ -3,35 +3,78 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Private Search Engine</title>
+<title>Private Search</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; line-height: 1.5; }
-  input { width: 70%; padding: 10px; font-size: 16px; }
-  button { padding: 10px 16px; font-size: 16px; cursor: pointer; }
-  .result { margin: 20px 0; }
-  .score { color: #666; font-size: 13px; }
-  small { color: #666; }
-  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+  :root { color-scheme: dark; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #0b1220; color: #e6edf7; line-height: 1.55; }
+  body.light { background: #f6f7f9; color: #111827; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 48px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 32px; letter-spacing: -0.02em; }
+  .tagline { color: #94a3b8; margin: 4px 0 0; }
+  body.light .tagline { color: #64748b; }
+  button, input { font: inherit; }
+  .theme-btn { background: #1e293b; color: #e6edf7; border: 1px solid #334155; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+  body.light .theme-btn { background: #fff; color: #111827; border-color: #d1d5db; }
+  form { display: flex; gap: 10px; margin: 22px 0 12px; }
+  input[type="search"] { flex: 1; padding: 14px 16px; font-size: 17px; border-radius: 14px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; }
+  body.light input[type="search"] { background: #fff; color: #111827; border-color: #d1d5db; }
+  input[type="search"]:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.25); }
+  .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: #2563eb; color: #fff; cursor: pointer; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .chips a { color: #93c5fd; text-decoration: none; border: 1px solid #334155; border-radius: 999px; padding: 5px 12px; font-size: 14px; }
+  body.light .chips a { color: #1d4ed8; border-color: #d1d5db; }
+  .card { background: #111c33; border: 1px solid #1e293b; border-radius: 18px; padding: 18px; margin: 16px 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  body.light .card { background: #fff; border-color: #e5e7eb; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+  .card h2 { margin: 0 0 8px; font-size: 20px; }
+  .card h3 { margin: 0 0 10px; font-size: 17px; }
+  .muted { color: #94a3b8; font-size: 14px; }
+  body.light .muted { color: #64748b; }
+  .person { display: flex; gap: 18px; }
+  .person img { width: 180px; height: auto; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+  @media (max-width: 600px) { .person { flex-direction: column; } .person img { width: 100%; max-width: 280px; } form { flex-direction: column; } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .grid img { width: 100%; height: 150px; object-fit: cover; border-radius: 12px; display: block; }
+  .grid video { width: 100%; border-radius: 12px; background: #000; }
+  .grid a { color: inherit; text-decoration: none; }
+  .grid figcaption { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+  a { color: #93c5fd; }
+  body.light a { color: #1d4ed8; }
+  .result { margin: 16px 0; }
+  .score { color: #94a3b8; font-size: 13px; }
+  .status { color: #94a3b8; }
 </style>
 </head>
 <body>
-<h1>Private Search</h1>
-<p><small>This page runs entirely in your browser. It only searches the
-documents built into this page. No server, no account, no API key, and
-no data is sent anywhere. The Python version in this repo
-(<code>search_engine.py</code> + <code>app.py</code>) does the same ranking
-on your own machine.</small></p>
-<form id="search-form">
-  <input id="q" name="q" placeholder="Search your documents…" autofocus>
-  <button type="submit">Search</button>
-</form>
-<div id="results"></div>
-<p><small>Try: <a href="#" data-q="redis cache">redis cache</a> ·
-<a href="#" data-q="private search engine">private search engine</a> ·
-<a href="#" data-q="inverted index">inverted index</a></small></p>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Private Search</h1>
+      <p class="tagline">Your documents, plus the web — in one clean search.</p>
+    </div>
+    <button class="theme-btn" id="theme-btn" type="button">☀️ Light mode</button>
+  </header>
+
+  <form id="search-form">
+    <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" autofocus>
+    <button class="search-btn" type="submit">Search</button>
+  </form>
+
+  <div class="chips">
+    <a href="#" data-q="Albert Einstein">Albert Einstein</a>
+    <a href="#" data-q="APJ Abdul Kalam">APJ Abdul Kalam</a>
+    <a href="#" data-q="redis cache">redis cache</a>
+    <a href="#" data-q="private search engine">private search engine</a>
+  </div>
+  <p class="muted">Local documents are searched privately in your browser. Web info below comes from Wikipedia and Wikimedia Commons — free, no account, no key.</p>
+
+  <div id="web"></div>
+  <div id="photos"></div>
+  <div id="videos"></div>
+  <div id="results"></div>
+</div>
 
 <script>
-// Same documents as documents/*.txt in this repo (first line = title).
 const DOCUMENTS = [
   { title: "Python Basics", path: "documents/python-basics.txt", text: "Python is a readable, general purpose programming language. Variables hold values, functions group reusable code, and lists and dictionaries store collections. Python is often used for scripts, automation, web backends, and data work because its standard library covers files, networking, and testing without extra installs." },
   { title: "Redis Explained", path: "documents/redis-explained.txt", text: "Redis is an in-memory key-value store. It keeps data in RAM, so reads and writes are very fast, and it supports strings, lists, sets, sorted sets, and hashes. Redis is commonly used as a cache, a session store, and a message queue. Persistence comes from snapshots and an append-only file, which replay writes after a restart." },
@@ -39,98 +82,117 @@ const DOCUMENTS = [
   { title: "Databases From Scratch", path: "documents/databases-from-scratch.txt", text: "A database stores records on disk and retrieves them quickly. A storage engine writes data to pages, a write-ahead log makes writes durable after a crash, and an index such as a B-tree lets the engine find a key without scanning every record. Building one from scratch teaches storage, indexing, and durability in a way using a database never does." },
   { title: "Private By Design", path: "documents/private-by-design.txt", text: "A private search engine runs on your own machine and indexes only documents you choose. It needs no account, no API key, and no cloud service, so your queries and your documents never leave the machine. That makes it easy to explain, easy to audit, and suitable for personal notes and internal documents." }
 ];
-
 const STOPWORDS = new Set(["a","an","the","and","or","of","to","in","on","for","with","is","are","was","were","be","by","at","as","it","its","this","that","from","into","you","your","we","our"]);
-
-function tokenize(text) {
-  return (text.toLowerCase().match(/[a-z0-9]+/g) || []).filter(t => !STOPWORDS.has(t));
-}
-
-// Build inverted index: term -> {docIndex: tf}, plus IDF.
+function tokenize(text) { return (text.toLowerCase().match(/[a-z0-9]+/g) || []).filter(t => !STOPWORDS.has(t)); }
 const docs = DOCUMENTS.map(d => {
-  const tokens = tokenize(d.text);
-  const tf = {};
+  const tokens = tokenize(d.text); const tf = {};
   tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
-  return { ...d, tokens, tf, titleTokens: new Set(tokenize(d.title)) };
+  return { ...d, tf, titleTokens: new Set(tokenize(d.title)) };
 });
 const index = {};
-docs.forEach((doc, i) => {
-  for (const [term, count] of Object.entries(doc.tf)) {
-    (index[term] = index[term] || {})[i] = count;
-  }
-});
+docs.forEach((doc, i) => { for (const [term, count] of Object.entries(doc.tf)) (index[term] = index[term] || {})[i] = count; });
 const idf = {};
-for (const [term, postings] of Object.entries(index)) {
-  idf[term] = Math.log(1 + docs.length / Object.keys(postings).length);
-}
-
+for (const [term, postings] of Object.entries(index)) idf[term] = Math.log(1 + docs.length / Object.keys(postings).length);
 function snippet(text, terms) {
-  const lower = text.toLowerCase();
-  let pos = Infinity;
+  const lower = text.toLowerCase(); let pos = Infinity;
   terms.forEach(t => { const p = lower.indexOf(t); if (p >= 0 && p < pos) pos = p; });
   if (!isFinite(pos)) return text.slice(0, 200);
-  const start = Math.max(0, pos - 60);
-  const end = Math.min(text.length, pos + 120);
+  const start = Math.max(0, pos - 60), end = Math.min(text.length, pos + 120);
   return (start > 0 ? "…" : "") + text.slice(start, end).trim() + (end < text.length ? "…" : "");
 }
-
-function search(query) {
-  const terms = [...new Set(tokenize(query))];
-  if (!terms.length) return [];
-  const scores = {};
-  const matched = {};
+function localSearch(query) {
+  const terms = [...new Set(tokenize(query))]; if (!terms.length) return [];
+  const scores = {}, matched = {};
   terms.forEach(term => {
     if (!index[term]) return;
-    for (const [docIndex, tf] of Object.entries(index[term])) {
+    for (const [i, tf] of Object.entries(index[term])) {
       let score = (1 + Math.log(tf)) * idf[term];
-      if (docs[docIndex].titleTokens.has(term)) score *= 1.5;
-      scores[docIndex] = (scores[docIndex] || 0) + score;
-      (matched[docIndex] = matched[docIndex] || new Set()).add(term);
+      if (docs[i].titleTokens.has(term)) score *= 1.5;
+      scores[i] = (scores[i] || 0) + score; (matched[i] = matched[i] || new Set()).add(term);
     }
   });
-  return Object.entries(scores)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([docIndex, score]) => {
-      const doc = docs[docIndex];
-      return { title: doc.title, path: doc.path, score: Math.round(score * 1000) / 1000,
-               matchedTerms: [...matched[docIndex]].sort(), snippet: snippet(doc.text, matched[docIndex]) };
-    });
+  return Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,10).map(([i, score]) => {
+    const doc = docs[i];
+    return { title: doc.title, path: doc.path, score: Math.round(score*1000)/1000, snippet: snippet(doc.text, matched[i]) };
+  });
 }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c])); }
+function cleanTitle(t) { return t.replace(/^File:/, "").replace(/\.(jpg|jpeg|png|webm|ogv)$/i, "").replace(/_/g, " "); }
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+async function webSearch(query) {
+  const webEl = document.getElementById("web");
+  const photosEl = document.getElementById("photos");
+  const videosEl = document.getElementById("videos");
+  webEl.innerHTML = `<p class="status">Searching the web…</p>`; photosEl.innerHTML = ""; videosEl.innerHTML = "";
+  const enc = encodeURIComponent(query);
+  try {
+    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${enc}&format=json&origin=*`);
+    const searchData = await searchRes.json();
+    const top = searchData?.query?.search?.[0];
+    if (top) {
+      const sumRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(top.title)}`);
+      const sum = await sumRes.json();
+      if (sum && sum.extract) {
+        const img = sum.thumbnail ? `<img src="${esc(sum.thumbnail.source)}" alt="${esc(sum.title)}">` : "";
+        const desc = sum.description ? `<p class="muted">${esc(sum.description)}</p>` : "";
+        const link = sum.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(top.title)}`;
+        webEl.innerHTML = `<section class="card"><h2>From the web — ${esc(sum.title)}</h2><div class="person">${img}<div>${desc}<p>${esc(sum.extract)}</p><p><a href="${esc(link)}" target="_blank" rel="noopener">Read more on Wikipedia →</a></p></div></div></section>`;
+      } else { webEl.innerHTML = ""; }
+    } else { webEl.innerHTML = ""; }
+  } catch (e) { webEl.innerHTML = `<p class="muted">Web info is unavailable right now — local results below still work.</p>`; }
+
+  try {
+    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrnamespace=6&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
+    const data = await res.json();
+    const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.thumburl && !/\.webm$/i.test(p.title) && !/\.ogv$/i.test(p.title)) : [];
+    if (pages.length) {
+      photosEl.innerHTML = `<section class="card"><h3>Photos</h3><div class="grid">` +
+        pages.slice(0,6).map(p => `<a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener"><img src="${esc(p.imageinfo[0].thumburl)}" alt="${esc(cleanTitle(p.title))}" loading="lazy"><figcaption>${esc(cleanTitle(p.title))}</figcaption></a>`).join("") +
+        `</div><p class="muted">Photos: Wikimedia Commons (free to reuse, check each photo's licence).</p></section>`;
+    }
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}%20filetype:video&gsrnamespace=6&gsrlimit=4&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
+    const data = await res.json();
+    const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.url) : [];
+    const yt = `https://www.youtube.com/results?search_query=${enc}`;
+    let html = `<section class="card"><h3>Videos</h3>`;
+    if (pages.length) {
+      html += `<div class="grid">` + pages.slice(0,3).map(p => `<figure style="margin:0"><video controls preload="none" poster="${esc(p.imageinfo[0].thumburl || "")}" src="${esc(p.imageinfo[0].url)}"></video><figcaption>${esc(cleanTitle(p.title))} — <a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener">Commons</a></figcaption></figure>`).join("") + `</div>`;
+    } else {
+      html += `<p class="muted">No free Commons video found for this search.</p>`;
+    }
+    html += `<p><a href="${esc(yt)}" target="_blank" rel="noopener">More videos on YouTube for “${esc(query)}” →</a></p></section>`;
+    videosEl.innerHTML = html;
+  } catch (e) {
+    videosEl.innerHTML = `<section class="card"><h3>Videos</h3><p><a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">More videos on YouTube for “${esc(query)}” →</a></p></section>`;
+  }
 }
 
 function render(query) {
-  const out = document.getElementById("results");
-  if (!query.trim()) { out.innerHTML = ""; return; }
-  const results = search(query);
-  if (!results.length) {
-    out.innerHTML = `<p>No results for <b>${escapeHtml(query)}</b>.</p>`;
-    return;
-  }
-  out.innerHTML = `<p>${results.length} result(s) for <b>${escapeHtml(query)}</b>:</p>` +
-    results.map(r => `<div class="result"><b>${escapeHtml(r.title)}</b> <span class="score">score ${r.score} · ${escapeHtml(r.path)}</span><div>${escapeHtml(r.snippet)}</div></div>`).join("");
+  const resultsEl = document.getElementById("results");
+  if (!query.trim()) { resultsEl.innerHTML = ""; return; }
+  const results = localSearch(query);
+  if (!results.length) resultsEl.innerHTML = `<section class="card"><p>No local documents matched <b>${esc(query)}</b>.</p></section>`;
+  else resultsEl.innerHTML = `<section class="card"><h2>My documents</h2><p class="muted">${results.length} result(s), ranked by TF-IDF.</p>` +
+    results.map(r => `<div class="result"><b>${esc(r.title)}</b> <span class="score">score ${r.score} · ${esc(r.path)}</span><div>${esc(r.snippet)}</div></div>`).join("") + `</section>`;
+  webSearch(query);
 }
 
-document.getElementById("search-form").addEventListener("submit", e => {
-  e.preventDefault();
-  render(document.getElementById("q").value);
-});
-document.querySelectorAll("[data-q]").forEach(a => {
-  a.addEventListener("click", e => {
-    e.preventDefault();
-    document.getElementById("q").value = a.dataset.q;
-    render(a.dataset.q);
-  });
-});
-// Support ?q=... links, e.g. from GitHub Pages.
+document.getElementById("search-form").addEventListener("submit", e => { e.preventDefault(); render(document.getElementById("q").value); });
+document.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); document.getElementById("q").value = a.dataset.q; render(a.dataset.q); }));
 const params = new URLSearchParams(location.search);
-if (params.get("q")) {
-  document.getElementById("q").value = params.get("q");
-  render(params.get("q"));
+if (params.get("q")) { document.getElementById("q").value = params.get("q"); render(params.get("q")); }
+
+const themeBtn = document.getElementById("theme-btn");
+function setTheme(light) {
+  document.body.classList.toggle("light", light);
+  themeBtn.textContent = light ? "🌙 Dark mode" : "☀️ Light mode";
+  try { localStorage.setItem("theme", light ? "light" : "dark"); } catch (e) {}
 }
+themeBtn.addEventListener("click", () => setTheme(!document.body.classList.contains("light")));
+try { if (localStorage.getItem("theme") === "light") setTheme(true); } catch (e) {}
 </script>
 </body>
 </html>

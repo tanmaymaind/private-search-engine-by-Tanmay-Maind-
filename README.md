@@ -29,7 +29,11 @@ GitHub Pages can only serve static files, so it cannot run the Python
 app above. `index.html` is a static, client-side version of the same
 search engine: the same documents, the same tokenising, inverted index,
 TF-IDF ranking, title boost, and snippets — all in JavaScript, all in
-the browser, with no server and no data sent anywhere.
+the browser — plus a clean dark UI and, for a person or topic, a web
+card from Wikipedia, photos from Wikimedia Commons, playable Commons
+videos, and a YouTube search link. Web info uses free public APIs
+with no account and no key; local documents are still searched
+entirely in your browser.
 
 To publish it: in the repo, go to Settings → Pages → Build and
 deployment → Deploy from a branch, choose `main` and `/ (root)`, and
