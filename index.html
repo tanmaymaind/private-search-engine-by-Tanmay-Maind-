@@ -60,9 +60,10 @@
   </header>
 
   <form id="search-form">
-    <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" autofocus>
+    <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" aria-label="Search your documents and the web" autofocus>
     <button class="search-btn" type="submit">Search</button>
   </form>
+  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box.</p>
 
   <div class="chips">
     <a href="#" data-q="Albert Einstein">Albert Einstein</a>
@@ -239,7 +240,7 @@ async function webSearch(query) {
     const data = await res.json();
     const docs2 = data?.response?.docs || [];
     if (docs2.length) {
-      videoHtml += `<div class="video-source"><h4>Internet Archive</h4><div class="grid">` + docs2.slice(0,4).map(d => `<figure style="margin:0"><iframe src="https://archive.org/embed/${esc(d.identifier)}" allowfullscreen></iframe><figcaption>${esc(d.title)} — <a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener">Open on Archive.org</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>Internet Archive</h4><div class="grid">` + docs2.slice(0,4).map(d => `<figure style="margin:0"><iframe src="https://archive.org/embed/${esc(d.identifier)}" loading="lazy" title="${esc(d.title)}" allowfullscreen></iframe><figcaption>${esc(d.title)} — <a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener">Open on Archive.org</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
@@ -249,7 +250,7 @@ async function webSearch(query) {
     const data = await res.json();
     const list = data?.list || [];
     if (list.length) {
-      videoHtml += `<div class="video-source"><h4>Dailymotion</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="https://www.dailymotion.com/embed/video/${esc(v.id)}" allowfullscreen allow="autoplay; fullscreen"></iframe><figcaption>${esc(v.title)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on Dailymotion</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>Dailymotion</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="https://www.dailymotion.com/embed/video/${esc(v.id)}" loading="lazy" title="${esc(v.title)}" allowfullscreen allow="autoplay; fullscreen"></iframe><figcaption>${esc(v.title)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on Dailymotion</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
@@ -259,7 +260,7 @@ async function webSearch(query) {
     const data = await res.json();
     const list = data?.data || [];
     if (list.length) {
-      videoHtml += `<div class="video-source"><h4>PeerTube</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="${esc(v.embedUrl)}" allowfullscreen></iframe><figcaption>${esc(v.name)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on PeerTube</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>PeerTube</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="${esc(v.embedUrl)}" loading="lazy" title="${esc(v.name)}" allowfullscreen></iframe><figcaption>${esc(v.name)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on PeerTube</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
@@ -281,6 +282,16 @@ document.getElementById("search-form").addEventListener("submit", e => { e.preve
 document.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); document.getElementById("q").value = a.dataset.q; render(a.dataset.q); }));
 const params = new URLSearchParams(location.search);
 if (params.get("q")) { document.getElementById("q").value = params.get("q"); render(params.get("q")); }
+
+// Keyboard: press / anywhere (outside a text field) to jump to the search
+// box, so searching never needs the mouse. In-memory only, like the theme.
+document.addEventListener("keydown", e => {
+  const tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA" && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    document.getElementById("q").focus();
+  }
+});
 
 // Theme toggle is in-memory only, on purpose: nothing is written to
 // localStorage, cookies, or any history list, so no search or watch

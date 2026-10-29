@@ -35,7 +35,9 @@ related pages from DuckDuckGo when it has any), a web card from
 Wikipedia for a person or topic, many photos in-page (up to 24 from
 Wikimedia Commons plus up to 12 from Internet Archive), and
 videos played right in the page from many free sites — up to 4 each
-from Wikimedia Commons, Internet Archive, Dailymotion, and PeerTube.
+from Wikimedia Commons, Internet Archive, Dailymotion, and PeerTube,
+with video embeds lazy-loaded so a search stays fast, and a keyboard
+shortcut: press `/` anywhere to jump to the search box.
 For the complete, Google-style result set, every search also has
 one-tap “see all photos” links (Google Images, Bing Images,
 DuckDuckGo Images, Brave Images, Yandex Images, Openverse, Pexels,
