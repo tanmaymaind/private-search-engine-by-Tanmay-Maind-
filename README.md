@@ -30,14 +30,23 @@ app above. `index.html` is a static, client-side version of the same
 search engine: the same documents, the same tokenising, inverted index,
 TF-IDF ranking, title boost, and snippets — all in JavaScript, all in
 the browser — plus a clean dark UI and, for any query, a “Results from
-the internet” list (Wikipedia articles from its free search API, plus
+the internet” list (up to 12 Wikipedia articles from its free search API, plus
 related pages from DuckDuckGo when it has any), a web card from
-Wikipedia for a person or topic, photos from Wikimedia Commons, and
-videos played right in the page from many free sites — Wikimedia
-Commons, Internet Archive, Dailymotion, and PeerTube — plus a YouTube
-search link. Every search also has one-tap links to run the same query
-on Google, Bing, DuckDuckGo and Brave, because full Google/Bing results
-need a paid API key that this free static site does not use. Web info
+Wikipedia for a person or topic, many photos in-page (up to 24 from
+Wikimedia Commons plus up to 12 from Internet Archive), and
+videos played right in the page from many free sites — up to 4 each
+from Wikimedia Commons, Internet Archive, Dailymotion, and PeerTube.
+For the complete, Google-style result set, every search also has
+one-tap “see all photos” links (Google Images, Bing Images,
+DuckDuckGo Images, Brave Images, Yandex Images, Openverse, Pexels,
+Pixabay), “see all videos” links (YouTube, Vimeo, Google Videos,
+Bing Videos, DuckDuckGo Videos, Brave Videos, Archive.org,
+Dailymotion, PeerTube), and whole-web links to Google, Bing,
+DuckDuckGo, Brave, Yahoo, Yandex, Ecosia, Startpage, Qwant and
+Mojeek — because full Google/Bing results need a paid API key and a
+billion-page index that this free static site does not have, so the
+complete “all results” pages live on those search engines and this
+site links straight to them for the same query. Web info
 uses free public APIs with no account and no key; local documents are
 still searched entirely in your browser.
 

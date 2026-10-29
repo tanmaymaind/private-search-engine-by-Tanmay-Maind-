@@ -70,7 +70,7 @@
     <a href="#" data-q="redis cache">redis cache</a>
     <a href="#" data-q="private search engine">private search engine</a>
   </div>
-  <p class="muted"><b>🔒 No history, no account.</b> This search engine does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Results from the internet below come from free public sites (Wikipedia, Wikimedia Commons, Internet Archive, Dailymotion, PeerTube) — no account, no key — plus one-tap links to search the whole web on Google, Bing, DuckDuckGo and Brave. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
+  <p class="muted"><b>🔒 No history, no account.</b> This search engine does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web"></div>
   <div id="internet"></div>
@@ -141,7 +141,7 @@ async function webSearch(query) {
   // open the same query on Google, Bing, DuckDuckGo and Brave in one tap.
   let internetHtml = "";
   try {
-    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${enc}&srlimit=8&format=json&origin=*`);
+    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${enc}&srlimit=12&format=json&origin=*`);
     const searchData = await searchRes.json();
     const allWiki = searchData?.query?.search || [];
     const top = allWiki[0];
@@ -180,7 +180,7 @@ async function webSearch(query) {
 
   // Full-web search, always available in one tap — no key needed to link out.
   {
-    const webLinks = `<p><b>Search the whole web for “${esc(query)}”:</b> <a href="https://www.google.com/search?q=${enc}" target="_blank" rel="noopener">Google</a> · <a href="https://www.bing.com/search?q=${enc}" target="_blank" rel="noopener">Bing</a> · <a href="https://duckduckgo.com/?q=${enc}" target="_blank" rel="noopener">DuckDuckGo</a> · <a href="https://search.brave.com/search?q=${enc}" target="_blank" rel="noopener">Brave</a></p>`;
+    const webLinks = `<p><b>Search the whole web for “${esc(query)}” — all search engines:</b> <a href="https://www.google.com/search?q=${enc}" target="_blank" rel="noopener">Google</a> · <a href="https://www.bing.com/search?q=${enc}" target="_blank" rel="noopener">Bing</a> · <a href="https://duckduckgo.com/?q=${enc}" target="_blank" rel="noopener">DuckDuckGo</a> · <a href="https://search.brave.com/search?q=${enc}" target="_blank" rel="noopener">Brave</a> · <a href="https://search.yahoo.com/search?p=${enc}" target="_blank" rel="noopener">Yahoo</a> · <a href="https://yandex.com/search/?text=${enc}" target="_blank" rel="noopener">Yandex</a> · <a href="https://www.ecosia.org/search?q=${enc}" target="_blank" rel="noopener">Ecosia</a> · <a href="https://www.startpage.com/sp/search?query=${enc}" target="_blank" rel="noopener">Startpage</a> · <a href="https://www.qwant.com/?q=${enc}" target="_blank" rel="noopener">Qwant</a> · <a href="https://www.mojeek.com/search?q=${enc}" target="_blank" rel="noopener">Mojeek</a></p>`;
     if (!internetHtml) {
       internetHtml = `<section class="card"><h2>Results from the internet</h2><p class="muted">No in-page web articles were found for this query.</p>${webLinks}</section>`;
     } else {
@@ -190,62 +190,80 @@ async function webSearch(query) {
   }
 
   try {
-    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrnamespace=6&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
+    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrnamespace=6&gsrlimit=30&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
     const data = await res.json();
     const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.thumburl && !/\.webm$/i.test(p.title) && !/\.ogv$/i.test(p.title)) : [];
     if (pages.length) {
-      photosEl.innerHTML = `<section class="card"><h3>Photos</h3><div class="grid">` +
-        pages.slice(0,6).map(p => `<a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener"><img src="${esc(p.imageinfo[0].thumburl)}" alt="${esc(cleanTitle(p.title))}" loading="lazy"><figcaption>${esc(cleanTitle(p.title))}</figcaption></a>`).join("") +
+      photosEl.innerHTML = `<section class="card"><h3>Photos — Wikimedia Commons</h3><div class="grid">` +
+        pages.slice(0,24).map(p => `<a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener"><img src="${esc(p.imageinfo[0].thumburl)}" alt="${esc(cleanTitle(p.title))}" loading="lazy"><figcaption>${esc(cleanTitle(p.title))}</figcaption></a>`).join("") +
         `</div><p class="muted">Photos: Wikimedia Commons (free to reuse, check each photo's licence).</p></section>`;
     }
   } catch (e) {}
 
+  // Internet Archive photos — a second free photo source, shown in full too.
+  try {
+    const q = encodeURIComponent(`(${query}) AND mediatype:(image)`);
+    const res = await fetch(`https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&rows=12&output=json`);
+    const data = await res.json();
+    const docs2 = data?.response?.docs || [];
+    if (docs2.length) {
+      const block = `<section class="card"><h3>Photos — Internet Archive</h3><div class="grid">` +
+        docs2.slice(0,12).map(d => `<a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener"><img src="https://archive.org/services/img/${esc(d.identifier)}" alt="${esc(d.title)}" loading="lazy"><figcaption>${esc(d.title)}</figcaption></a>`).join("") +
+        `</div></section>`;
+      photosEl.innerHTML += block;
+    }
+  } catch (e) {}
+
+  // See ALL photos on the big image search engines, in one tap — this is
+  // where Google-style “every photo on the internet” results live.
+  photosEl.innerHTML += `<section class="card"><h3>See all photos for “${esc(query)}”</h3><p><a href="https://www.google.com/search?tbm=isch&q=${enc}" target="_blank" rel="noopener">Google Images</a> · <a href="https://www.bing.com/images/search?q=${enc}" target="_blank" rel="noopener">Bing Images</a> · <a href="https://duckduckgo.com/?q=${enc}&iax=images&ia=images" target="_blank" rel="noopener">DuckDuckGo Images</a> · <a href="https://search.brave.com/images?q=${enc}" target="_blank" rel="noopener">Brave Images</a> · <a href="https://yandex.com/images/search?text=${enc}" target="_blank" rel="noopener">Yandex Images</a> · <a href="https://commons.wikimedia.org/w/index.php?search=${enc}&title=Special:MediaSearch&type=image" target="_blank" rel="noopener">All Commons photos</a> · <a href="https://openverse.org/search/image?q=${enc}" target="_blank" rel="noopener">Openverse</a> · <a href="https://www.pexels.com/search/${enc}/" target="_blank" rel="noopener">Pexels</a> · <a href="https://pixabay.com/images/search/${enc}/" target="_blank" rel="noopener">Pixabay</a></p><p class="muted">No free site can copy Google's whole photo index in-page — Google, Bing and the others above crawl billions of pages. The in-page photos above are every free result we can fetch without a paid key; the links here open the complete result set for the same query.</p></section>`;
+
   // Videos from ANY free video site, played right here in the page — not only YouTube.
   // Each source is fetched independently, so one failing site never breaks the others.
-  let videoHtml = `<section class="card"><h3>Videos — free, from many sites</h3><p class="muted">Tap play on any player below. Nothing you play is recorded by this page.</p>`;
+  let videoHtml = `<section class="card"><h3>Videos — all free sources, in-page</h3><p class="muted">Tap play on any player below. Up to 4 players from each free site, so up to 16 in-page videos — not just 2 per site. Nothing you play is recorded by this page.</p>`;
 
   // 1. Wikimedia Commons — direct <video> player.
   try {
-    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}%20filetype:video&gsrnamespace=6&gsrlimit=4&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
+    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}%20filetype:video&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
     const data = await res.json();
     const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.url) : [];
     if (pages.length) {
-      videoHtml += `<div class="video-source"><h4>Wikimedia Commons</h4><div class="grid">` + pages.slice(0,2).map(p => `<figure style="margin:0"><video controls preload="none" poster="${esc(p.imageinfo[0].thumburl || "")}" src="${esc(p.imageinfo[0].url)}"></video><figcaption>${esc(cleanTitle(p.title))} — <a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener">Open on Commons</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>Wikimedia Commons</h4><div class="grid">` + pages.slice(0,4).map(p => `<figure style="margin:0"><video controls preload="none" poster="${esc(p.imageinfo[0].thumburl || "")}" src="${esc(p.imageinfo[0].url)}"></video><figcaption>${esc(cleanTitle(p.title))} — <a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener">Open on Commons</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
   // 2. Internet Archive — embedded player.
   try {
     const q = encodeURIComponent(`(${query}) AND mediatype:(movies)`);
-    const res = await fetch(`https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&rows=4&output=json`);
+    const res = await fetch(`https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&rows=8&output=json`);
     const data = await res.json();
     const docs2 = data?.response?.docs || [];
     if (docs2.length) {
-      videoHtml += `<div class="video-source"><h4>Internet Archive</h4><div class="grid">` + docs2.slice(0,2).map(d => `<figure style="margin:0"><iframe src="https://archive.org/embed/${esc(d.identifier)}" allowfullscreen></iframe><figcaption>${esc(d.title)} — <a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener">Open on Archive.org</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>Internet Archive</h4><div class="grid">` + docs2.slice(0,4).map(d => `<figure style="margin:0"><iframe src="https://archive.org/embed/${esc(d.identifier)}" allowfullscreen></iframe><figcaption>${esc(d.title)} — <a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener">Open on Archive.org</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
   // 3. Dailymotion — embedded player.
   try {
-    const res = await fetch(`https://api.dailymotion.com/videos?search=${enc}&fields=id,title,thumbnail_360_url,url&limit=4`);
+    const res = await fetch(`https://api.dailymotion.com/videos?search=${enc}&fields=id,title,thumbnail_360_url,url&limit=8`);
     const data = await res.json();
     const list = data?.list || [];
     if (list.length) {
-      videoHtml += `<div class="video-source"><h4>Dailymotion</h4><div class="grid">` + list.slice(0,2).map(v => `<figure style="margin:0"><iframe src="https://www.dailymotion.com/embed/video/${esc(v.id)}" allowfullscreen allow="autoplay; fullscreen"></iframe><figcaption>${esc(v.title)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on Dailymotion</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>Dailymotion</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="https://www.dailymotion.com/embed/video/${esc(v.id)}" allowfullscreen allow="autoplay; fullscreen"></iframe><figcaption>${esc(v.title)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on Dailymotion</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
   // 4. PeerTube (federated, many independent instances) — embedded player.
   try {
-    const res = await fetch(`https://search.joinpeertube.org/api/v1/search/videos?search=${enc}&count=4`);
+    const res = await fetch(`https://search.joinpeertube.org/api/v1/search/videos?search=${enc}&count=8`);
     const data = await res.json();
     const list = data?.data || [];
     if (list.length) {
-      videoHtml += `<div class="video-source"><h4>PeerTube</h4><div class="grid">` + list.slice(0,2).map(v => `<figure style="margin:0"><iframe src="${esc(v.embedUrl)}" allowfullscreen></iframe><figcaption>${esc(v.name)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on PeerTube</a></figcaption></figure>`).join("") + `</div></div>`;
+      videoHtml += `<div class="video-source"><h4>PeerTube</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="${esc(v.embedUrl)}" allowfullscreen></iframe><figcaption>${esc(v.name)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on PeerTube</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
-  videoHtml += `<p>More on other sites: <a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">YouTube</a> · <a href="https://archive.org/search?query=${enc}" target="_blank" rel="noopener">Archive.org</a> · <a href="https://www.dailymotion.com/search/${enc}" target="_blank" rel="noopener">Dailymotion</a> · <a href="https://search.joinpeertube.org/search?search=${enc}" target="_blank" rel="noopener">PeerTube</a></p></section>`;
+  videoHtml += `<h3 style="margin-top:18px">See all videos for “${esc(query)}”</h3><p><a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">YouTube</a> · <a href="https://vimeo.com/search?q=${enc}" target="_blank" rel="noopener">Vimeo</a> · <a href="https://www.google.com/search?tbm=vid&q=${enc}" target="_blank" rel="noopener">Google Videos</a> · <a href="https://www.bing.com/videos/search?q=${enc}" target="_blank" rel="noopener">Bing Videos</a> · <a href="https://duckduckgo.com/?q=${enc}&iax=videos&ia=videos" target="_blank" rel="noopener">DuckDuckGo Videos</a> · <a href="https://search.brave.com/videos?q=${enc}" target="_blank" rel="noopener">Brave Videos</a> · <a href="https://archive.org/search?query=${enc}" target="_blank" rel="noopener">Archive.org</a> · <a href="https://www.dailymotion.com/search/${enc}" target="_blank" rel="noopener">Dailymotion</a> · <a href="https://search.joinpeertube.org/search?search=${enc}" target="_blank" rel="noopener">PeerTube</a></p><p class="muted">YouTube and Vimeo need a paid key to show their videos in-page, so they are one-tap links above — those pages hold their complete video results for this query.</p></section>`;
   videosEl.innerHTML = videoHtml;
 }
 

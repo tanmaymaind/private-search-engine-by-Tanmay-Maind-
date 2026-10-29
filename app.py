@@ -99,11 +99,16 @@ not only YouTube.</small></p>
             f'<p>{html.escape(web["extract"])}</p>'
             f'<p><a href="{html.escape(web["url"])}">Read more on Wikipedia</a> · '
             f'<a href="https://commons.wikimedia.org/w/index.php?search={enc}&title=Special:MediaSearch&type=image">Photos on Commons</a> · '
+            f'<a href="https://www.google.com/search?tbm=isch&q={enc}">All photos on Google Images</a> · '
+            f'<a href="https://www.bing.com/images/search?q={enc}">All photos on Bing Images</a> · '
             f'<a href="https://commons.wikimedia.org/w/index.php?search={enc}&title=Special:MediaSearch&type=video">Videos on Commons</a> · '
             f'<a href="https://archive.org/search?query={enc}">Videos on Archive.org</a> · '
             f'<a href="https://www.dailymotion.com/search/{enc}">Videos on Dailymotion</a> · '
             f'<a href="https://search.joinpeertube.org/search?search={enc}">Videos on PeerTube</a> · '
-            f'<a href="https://www.youtube.com/results?search_query={enc}">More videos on YouTube</a></p></div>'
+            f'<a href="https://www.youtube.com/results?search_query={enc}">All videos on YouTube</a> · '
+            f'<a href="https://vimeo.com/search?q={enc}">All videos on Vimeo</a> · '
+            f'<a href="https://www.google.com/search?tbm=vid&q={enc}">All videos on Google Videos</a> · '
+            f'<a href="https://www.bing.com/videos/search?q={enc}">All videos on Bing Videos</a></p></div>'
         )
         articles_html = "".join(
             f'<div><b><a href="{html.escape(a["url"])}">{html.escape(a["title"])}</a></b>'
@@ -113,11 +118,17 @@ not only YouTube.</small></p>
         body += (
             f'<div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin-top:16px">'
             f"<h2>Results from the internet</h2>{articles_html}"
-            f'<p><b>Search the whole web:</b> '
+            f'<p><b>Search the whole web — all search engines:</b> '
             f'<a href="https://www.google.com/search?q={enc}">Google</a> · '
             f'<a href="https://www.bing.com/search?q={enc}">Bing</a> · '
             f'<a href="https://duckduckgo.com/?q={enc}">DuckDuckGo</a> · '
-            f'<a href="https://search.brave.com/search?q={enc}">Brave</a></p></div>'
+            f'<a href="https://search.brave.com/search?q={enc}">Brave</a> · '
+            f'<a href="https://search.yahoo.com/search?p={enc}">Yahoo</a> · '
+            f'<a href="https://yandex.com/search/?text={enc}">Yandex</a> · '
+            f'<a href="https://www.ecosia.org/search?q={enc}">Ecosia</a> · '
+            f'<a href="https://www.startpage.com/sp/search?query={enc}">Startpage</a> · '
+            f'<a href="https://www.qwant.com/?q={enc}">Qwant</a> · '
+            f'<a href="https://www.mojeek.com/search?q={enc}">Mojeek</a></p></div>'
         )
     if query:
         if not results:
