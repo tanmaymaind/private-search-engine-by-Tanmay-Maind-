@@ -67,9 +67,10 @@ small {{ color: #666; }}
 </style></head><body>
 <h1>Private Search</h1>
 <p><small>Runs locally. Local documents are indexed from <code>documents/</code>
-only. A web card below (Wikipedia / Wikimedia Commons / YouTube links)
-is fetched only when you search, to show info, photos and videos
-for a person or topic.</small></p>
+only, and this app stores no search history and no watch history.
+A web card below is fetched only when you search, to show info,
+photos and videos for a person or topic from many free sites,
+not only YouTube.</small></p>
 <form><input name="q" value="{q}" placeholder="Search your documents…" autofocus>
 <button>Search</button></form>
 """
@@ -87,6 +88,9 @@ for a person or topic.</small></p>
             f'<p><a href="{html.escape(web["url"])}">Read more on Wikipedia</a> · '
             f'<a href="https://commons.wikimedia.org/w/index.php?search={enc}&title=Special:MediaSearch&type=image">Photos on Commons</a> · '
             f'<a href="https://commons.wikimedia.org/w/index.php?search={enc}&title=Special:MediaSearch&type=video">Videos on Commons</a> · '
+            f'<a href="https://archive.org/search?query={enc}">Videos on Archive.org</a> · '
+            f'<a href="https://www.dailymotion.com/search/{enc}">Videos on Dailymotion</a> · '
+            f'<a href="https://search.joinpeertube.org/search?search={enc}">Videos on PeerTube</a> · '
             f'<a href="https://www.youtube.com/results?search_query={enc}">More videos on YouTube</a></p></div>'
         )
     if query:

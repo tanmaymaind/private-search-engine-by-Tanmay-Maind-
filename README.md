@@ -30,10 +30,19 @@ app above. `index.html` is a static, client-side version of the same
 search engine: the same documents, the same tokenising, inverted index,
 TF-IDF ranking, title boost, and snippets — all in JavaScript, all in
 the browser — plus a clean dark UI and, for a person or topic, a web
-card from Wikipedia, photos from Wikimedia Commons, playable Commons
-videos, and a YouTube search link. Web info uses free public APIs
-with no account and no key; local documents are still searched
-entirely in your browser.
+card from Wikipedia, photos from Wikimedia Commons, and videos played
+right in the page from many free sites — Wikimedia Commons,
+Internet Archive, Dailymotion, and PeerTube — plus a YouTube search
+link. Web info uses free public APIs with no account and no key;
+local documents are still searched entirely in your browser.
+
+## Privacy: no history
+
+This search engine stores no search history and no watch history:
+no cookies, no localStorage, no saved list, no account. The page
+itself records nothing you search or play. When you play a video,
+that video site itself will see that play, just like visiting it
+directly — this page does not record it.
 
 To publish it: in the repo, go to Settings → Pages → Build and
 deployment → Deploy from a branch, choose `main` and `/ (root)`, and

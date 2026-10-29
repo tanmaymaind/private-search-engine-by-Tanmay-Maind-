@@ -36,6 +36,10 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
   .grid img { width: 100%; height: 150px; object-fit: cover; border-radius: 12px; display: block; }
   .grid video { width: 100%; border-radius: 12px; background: #000; }
+  .grid iframe { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 12px; background: #000; }
+  .video-source { margin: 18px 0 4px; }
+  .video-source h4 { margin: 0 0 10px; font-size: 15px; color: #cbd5e1; }
+  body.light .video-source h4 { color: #334155; }
   .grid a { color: inherit; text-decoration: none; }
   .grid figcaption { font-size: 13px; color: #94a3b8; margin-top: 6px; }
   a { color: #93c5fd; }
@@ -66,7 +70,7 @@
     <a href="#" data-q="redis cache">redis cache</a>
     <a href="#" data-q="private search engine">private search engine</a>
   </div>
-  <p class="muted">Local documents are searched privately in your browser. Web info below comes from Wikipedia and Wikimedia Commons — free, no account, no key.</p>
+  <p class="muted"><b>🔒 No history, no account.</b> This search engine does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Web info below comes from free public sites (Wikipedia, Wikimedia Commons, Internet Archive, Dailymotion, PeerTube) — no account, no key. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web"></div>
   <div id="photos"></div>
@@ -152,22 +156,53 @@ async function webSearch(query) {
     }
   } catch (e) {}
 
+  // Videos from ANY free video site, played right here in the page — not only YouTube.
+  // Each source is fetched independently, so one failing site never breaks the others.
+  let videoHtml = `<section class="card"><h3>Videos — free, from many sites</h3><p class="muted">Tap play on any player below. Nothing you play is recorded by this page.</p>`;
+
+  // 1. Wikimedia Commons — direct <video> player.
   try {
     const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}%20filetype:video&gsrnamespace=6&gsrlimit=4&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
     const data = await res.json();
     const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.url) : [];
-    const yt = `https://www.youtube.com/results?search_query=${enc}`;
-    let html = `<section class="card"><h3>Videos</h3>`;
     if (pages.length) {
-      html += `<div class="grid">` + pages.slice(0,3).map(p => `<figure style="margin:0"><video controls preload="none" poster="${esc(p.imageinfo[0].thumburl || "")}" src="${esc(p.imageinfo[0].url)}"></video><figcaption>${esc(cleanTitle(p.title))} — <a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener">Commons</a></figcaption></figure>`).join("") + `</div>`;
-    } else {
-      html += `<p class="muted">No free Commons video found for this search.</p>`;
+      videoHtml += `<div class="video-source"><h4>Wikimedia Commons</h4><div class="grid">` + pages.slice(0,2).map(p => `<figure style="margin:0"><video controls preload="none" poster="${esc(p.imageinfo[0].thumburl || "")}" src="${esc(p.imageinfo[0].url)}"></video><figcaption>${esc(cleanTitle(p.title))} — <a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener">Open on Commons</a></figcaption></figure>`).join("") + `</div></div>`;
     }
-    html += `<p><a href="${esc(yt)}" target="_blank" rel="noopener">More videos on YouTube for “${esc(query)}” →</a></p></section>`;
-    videosEl.innerHTML = html;
-  } catch (e) {
-    videosEl.innerHTML = `<section class="card"><h3>Videos</h3><p><a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">More videos on YouTube for “${esc(query)}” →</a></p></section>`;
-  }
+  } catch (e) {}
+
+  // 2. Internet Archive — embedded player.
+  try {
+    const q = encodeURIComponent(`(${query}) AND mediatype:(movies)`);
+    const res = await fetch(`https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&rows=4&output=json`);
+    const data = await res.json();
+    const docs2 = data?.response?.docs || [];
+    if (docs2.length) {
+      videoHtml += `<div class="video-source"><h4>Internet Archive</h4><div class="grid">` + docs2.slice(0,2).map(d => `<figure style="margin:0"><iframe src="https://archive.org/embed/${esc(d.identifier)}" allowfullscreen></iframe><figcaption>${esc(d.title)} — <a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener">Open on Archive.org</a></figcaption></figure>`).join("") + `</div></div>`;
+    }
+  } catch (e) {}
+
+  // 3. Dailymotion — embedded player.
+  try {
+    const res = await fetch(`https://api.dailymotion.com/videos?search=${enc}&fields=id,title,thumbnail_360_url,url&limit=4`);
+    const data = await res.json();
+    const list = data?.list || [];
+    if (list.length) {
+      videoHtml += `<div class="video-source"><h4>Dailymotion</h4><div class="grid">` + list.slice(0,2).map(v => `<figure style="margin:0"><iframe src="https://www.dailymotion.com/embed/video/${esc(v.id)}" allowfullscreen allow="autoplay; fullscreen"></iframe><figcaption>${esc(v.title)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on Dailymotion</a></figcaption></figure>`).join("") + `</div></div>`;
+    }
+  } catch (e) {}
+
+  // 4. PeerTube (federated, many independent instances) — embedded player.
+  try {
+    const res = await fetch(`https://search.joinpeertube.org/api/v1/search/videos?search=${enc}&count=4`);
+    const data = await res.json();
+    const list = data?.data || [];
+    if (list.length) {
+      videoHtml += `<div class="video-source"><h4>PeerTube</h4><div class="grid">` + list.slice(0,2).map(v => `<figure style="margin:0"><iframe src="${esc(v.embedUrl)}" allowfullscreen></iframe><figcaption>${esc(v.name)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on PeerTube</a></figcaption></figure>`).join("") + `</div></div>`;
+    }
+  } catch (e) {}
+
+  videoHtml += `<p>More on other sites: <a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">YouTube</a> · <a href="https://archive.org/search?query=${enc}" target="_blank" rel="noopener">Archive.org</a> · <a href="https://www.dailymotion.com/search/${enc}" target="_blank" rel="noopener">Dailymotion</a> · <a href="https://search.joinpeertube.org/search?search=${enc}" target="_blank" rel="noopener">PeerTube</a></p></section>`;
+  videosEl.innerHTML = videoHtml;
 }
 
 function render(query) {
@@ -185,14 +220,15 @@ document.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e
 const params = new URLSearchParams(location.search);
 if (params.get("q")) { document.getElementById("q").value = params.get("q"); render(params.get("q")); }
 
+// Theme toggle is in-memory only, on purpose: nothing is written to
+// localStorage, cookies, or any history list, so no search or watch
+// history is ever stored by this page.
 const themeBtn = document.getElementById("theme-btn");
 function setTheme(light) {
   document.body.classList.toggle("light", light);
   themeBtn.textContent = light ? "🌙 Dark mode" : "☀️ Light mode";
-  try { localStorage.setItem("theme", light ? "light" : "dark"); } catch (e) {}
 }
 themeBtn.addEventListener("click", () => setTheme(!document.body.classList.contains("light")));
-try { if (localStorage.getItem("theme") === "light") setTheme(true); } catch (e) {}
 </script>
 </body>
 </html>
