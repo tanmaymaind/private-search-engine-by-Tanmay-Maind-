@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,8 +34,18 @@ def web_summary(query: str):
         )
         req = urllib.request.Request(search_url, headers={"User-Agent": "PrivateSearch/1.0"})
         with urllib.request.urlopen(req, timeout=5) as resp:
-            top = json.load(resp)["query"]["search"][0]
+            search_results = json.load(resp)["query"]["search"]
+        top = search_results[0]
         title = top["title"]
+        articles = [
+            {
+                "title": s["title"],
+                "snippet": re.sub(r"<[^>]+>", "", s.get("snippet", "")),
+                "url": "https://en.wikipedia.org/wiki/"
+                + urllib.parse.quote(s["title"].replace(" ", "_")),
+            }
+            for s in search_results[:8]
+        ]
         req = urllib.request.Request(
             "https://en.wikipedia.org/api/rest_v1/page/summary/"
             + urllib.parse.quote(title),
@@ -43,6 +54,7 @@ def web_summary(query: str):
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.load(resp)
         return {
+            "articles": articles,
             "title": data.get("title", title),
             "description": data.get("description", ""),
             "extract": data.get("extract", ""),
@@ -92,6 +104,20 @@ not only YouTube.</small></p>
             f'<a href="https://www.dailymotion.com/search/{enc}">Videos on Dailymotion</a> · '
             f'<a href="https://search.joinpeertube.org/search?search={enc}">Videos on PeerTube</a> · '
             f'<a href="https://www.youtube.com/results?search_query={enc}">More videos on YouTube</a></p></div>'
+        )
+        articles_html = "".join(
+            f'<div><b><a href="{html.escape(a["url"])}">{html.escape(a["title"])}</a></b>'
+            f'<div><small>{html.escape(a["snippet"])}… · Wikipedia</small></div></div>'
+            for a in web.get("articles", [])
+        )
+        body += (
+            f'<div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin-top:16px">'
+            f"<h2>Results from the internet</h2>{articles_html}"
+            f'<p><b>Search the whole web:</b> '
+            f'<a href="https://www.google.com/search?q={enc}">Google</a> · '
+            f'<a href="https://www.bing.com/search?q={enc}">Bing</a> · '
+            f'<a href="https://duckduckgo.com/?q={enc}">DuckDuckGo</a> · '
+            f'<a href="https://search.brave.com/search?q={enc}">Brave</a></p></div>'
         )
     if query:
         if not results:

@@ -70,9 +70,10 @@
     <a href="#" data-q="redis cache">redis cache</a>
     <a href="#" data-q="private search engine">private search engine</a>
   </div>
-  <p class="muted"><b>🔒 No history, no account.</b> This search engine does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Web info below comes from free public sites (Wikipedia, Wikimedia Commons, Internet Archive, Dailymotion, PeerTube) — no account, no key. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
+  <p class="muted"><b>🔒 No history, no account.</b> This search engine does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Results from the internet below come from free public sites (Wikipedia, Wikimedia Commons, Internet Archive, Dailymotion, PeerTube) — no account, no key — plus one-tap links to search the whole web on Google, Bing, DuckDuckGo and Brave. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web"></div>
+  <div id="internet"></div>
   <div id="photos"></div>
   <div id="videos"></div>
   <div id="results"></div>
@@ -125,14 +126,30 @@ function cleanTitle(t) { return t.replace(/^File:/, "").replace(/\.(jpg|jpeg|png
 
 async function webSearch(query) {
   const webEl = document.getElementById("web");
+  const internetEl = document.getElementById("internet");
   const photosEl = document.getElementById("photos");
   const videosEl = document.getElementById("videos");
-  webEl.innerHTML = `<p class="status">Searching the web…</p>`; photosEl.innerHTML = ""; videosEl.innerHTML = "";
+  webEl.innerHTML = `<p class="status">Searching the web…</p>`; internetEl.innerHTML = ""; photosEl.innerHTML = ""; videosEl.innerHTML = "";
   const enc = encodeURIComponent(query);
+  const stripTags = s => String(s || "").replace(/<[^>]+>/g, "");
+  // Results from the internet: a list of web articles for ANY query, not
+  // just a single person card and not just the local documents. Wikipedia's
+  // free search API gives the in-page list; DuckDuckGo's free instant-answer
+  // API adds related external pages when it has any (it is often empty, so
+  // it is best-effort only). Google/Bing results need a paid API key, which
+  // this free static site does not use — so the full-web links below always
+  // open the same query on Google, Bing, DuckDuckGo and Brave in one tap.
+  let internetHtml = "";
   try {
-    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${enc}&format=json&origin=*`);
+    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${enc}&srlimit=8&format=json&origin=*`);
     const searchData = await searchRes.json();
-    const top = searchData?.query?.search?.[0];
+    const allWiki = searchData?.query?.search || [];
+    const top = allWiki[0];
+    if (allWiki.length) {
+      internetHtml += `<section class="card"><h2>Results from the internet</h2>` +
+        allWiki.map(s => `<div class="result"><a href="https://en.wikipedia.org/wiki/${encodeURIComponent(s.title)}" target="_blank" rel="noopener"><b>${esc(s.title)}</b></a><div class="muted">${esc(stripTags(s.snippet))}… · Wikipedia</div></div>`).join("") +
+        `</section>`;
+    }
     if (top) {
       const sumRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(top.title)}`);
       const sum = await sumRes.json();
@@ -144,6 +161,33 @@ async function webSearch(query) {
       } else { webEl.innerHTML = ""; }
     } else { webEl.innerHTML = ""; }
   } catch (e) { webEl.innerHTML = `<p class="muted">Web info is unavailable right now — local results below still work.</p>`; }
+
+  // Best-effort related pages from DuckDuckGo (often empty — never required).
+  try {
+    const res = await fetch(`https://api.duckduckgo.com/?q=${enc}&format=json&no_html=1&skip_disambig=1`);
+    const data = await res.json();
+    const flat = [];
+    (data?.RelatedTopics || []).forEach(t => { if (t.Topics) t.Topics.forEach(x => flat.push(x)); else flat.push(t); });
+    const related = flat.filter(t => t.FirstURL && t.Text).slice(0, 5);
+    if (related.length) {
+      if (!internetHtml) internetHtml = `<section class="card"><h2>Results from the internet</h2>`;
+      else internetHtml = internetHtml.replace(/<\/section>$/, "");
+      internetHtml += `<h3 style="margin-top:16px">Also from the web</h3>` +
+        related.map(t => `<div class="result"><a href="${esc(t.FirstURL)}" target="_blank" rel="noopener"><b>${esc(t.Text.split(" - ")[0] || t.Text)}</b></a><div class="muted">${esc(t.Text)}</div></div>`).join("") +
+        `</section>`;
+    }
+  } catch (e) {}
+
+  // Full-web search, always available in one tap — no key needed to link out.
+  {
+    const webLinks = `<p><b>Search the whole web for “${esc(query)}”:</b> <a href="https://www.google.com/search?q=${enc}" target="_blank" rel="noopener">Google</a> · <a href="https://www.bing.com/search?q=${enc}" target="_blank" rel="noopener">Bing</a> · <a href="https://duckduckgo.com/?q=${enc}" target="_blank" rel="noopener">DuckDuckGo</a> · <a href="https://search.brave.com/search?q=${enc}" target="_blank" rel="noopener">Brave</a></p>`;
+    if (!internetHtml) {
+      internetHtml = `<section class="card"><h2>Results from the internet</h2><p class="muted">No in-page web articles were found for this query.</p>${webLinks}</section>`;
+    } else {
+      internetHtml = internetHtml.replace(/<\/section>$/, webLinks + `</section>`);
+    }
+    internetEl.innerHTML = internetHtml;
+  }
 
   try {
     const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrnamespace=6&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);

@@ -29,12 +29,17 @@ GitHub Pages can only serve static files, so it cannot run the Python
 app above. `index.html` is a static, client-side version of the same
 search engine: the same documents, the same tokenising, inverted index,
 TF-IDF ranking, title boost, and snippets — all in JavaScript, all in
-the browser — plus a clean dark UI and, for a person or topic, a web
-card from Wikipedia, photos from Wikimedia Commons, and videos played
-right in the page from many free sites — Wikimedia Commons,
-Internet Archive, Dailymotion, and PeerTube — plus a YouTube search
-link. Web info uses free public APIs with no account and no key;
-local documents are still searched entirely in your browser.
+the browser — plus a clean dark UI and, for any query, a “Results from
+the internet” list (Wikipedia articles from its free search API, plus
+related pages from DuckDuckGo when it has any), a web card from
+Wikipedia for a person or topic, photos from Wikimedia Commons, and
+videos played right in the page from many free sites — Wikimedia
+Commons, Internet Archive, Dailymotion, and PeerTube — plus a YouTube
+search link. Every search also has one-tap links to run the same query
+on Google, Bing, DuckDuckGo and Brave, because full Google/Bing results
+need a paid API key that this free static site does not use. Web info
+uses free public APIs with no account and no key; local documents are
+still searched entirely in your browser.
 
 ## Privacy: no history
 
