@@ -1,0 +1,2 @@
+How Search Works
+A search engine builds an inverted index that maps each word to the documents containing it. At query time it looks up the query words, scores each candidate document, and ranks the best matches first. TF-IDF scoring rewards rare, informative words more than common words, and title matches are a stronger signal than body matches.

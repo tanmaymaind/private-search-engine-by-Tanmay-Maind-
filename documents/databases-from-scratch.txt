@@ -1,0 +1,2 @@
+Databases From Scratch
+A database stores records on disk and retrieves them quickly. A storage engine writes data to pages, a write-ahead log makes writes durable after a crash, and an index such as a B-tree lets the engine find a key without scanning every record. Building one from scratch teaches storage, indexing, and durability in a way using a database never does.

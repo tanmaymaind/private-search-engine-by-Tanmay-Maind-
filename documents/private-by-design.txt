@@ -1,0 +1,2 @@
+Private By Design
+A private search engine runs on your own machine and indexes only documents you choose. It needs no account, no API key, and no cloud service, so your queries and your documents never leave the machine. That makes it easy to explain, easy to audit, and suitable for personal notes and internal documents.

@@ -1,0 +1,2 @@
+Python Basics
+Python is a readable, general purpose programming language. Variables hold values, functions group reusable code, and lists and dictionaries store collections. Python is often used for scripts, automation, web backends, and data work because its standard library covers files, networking, and testing without extra installs.

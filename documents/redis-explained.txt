@@ -1,0 +1,2 @@
+Redis Explained
+Redis is an in-memory key-value store. It keeps data in RAM, so reads and writes are very fast, and it supports strings, lists, sets, sorted sets, and hashes. Redis is commonly used as a cache, a session store, and a message queue. Persistence comes from snapshots and an append-only file, which replay writes after a restart.
