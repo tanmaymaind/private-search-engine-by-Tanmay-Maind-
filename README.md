@@ -23,6 +23,19 @@ python3 app.py
 # open http://127.0.0.1:8000
 ```
 
+## Website version (GitHub Pages)
+
+GitHub Pages can only serve static files, so it cannot run the Python
+app above. `index.html` is a static, client-side version of the same
+search engine: the same documents, the same tokenising, inverted index,
+TF-IDF ranking, title boost, and snippets — all in JavaScript, all in
+the browser, with no server and no data sent anywhere.
+
+To publish it: in the repo, go to Settings → Pages → Build and
+deployment → Deploy from a branch, choose `main` and `/ (root)`, and
+save. The site will then be at
+`https://tanmaymaind.github.io/private-search-engine-by-Tanmay-Maind-/`
+
 Add your own documents: drop `.txt` or `.md` files into `documents/`
 (first line = title) and restart the app. The index rebuilds on startup.
 

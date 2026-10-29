@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Private Search Engine</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; line-height: 1.5; }
+  input { width: 70%; padding: 10px; font-size: 16px; }
+  button { padding: 10px 16px; font-size: 16px; cursor: pointer; }
+  .result { margin: 20px 0; }
+  .score { color: #666; font-size: 13px; }
+  small { color: #666; }
+  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Private Search</h1>
+<p><small>This page runs entirely in your browser. It only searches the
+documents built into this page. No server, no account, no API key, and
+no data is sent anywhere. The Python version in this repo
+(<code>search_engine.py</code> + <code>app.py</code>) does the same ranking
+on your own machine.</small></p>
+<form id="search-form">
+  <input id="q" name="q" placeholder="Search your documents…" autofocus>
+  <button type="submit">Search</button>
+</form>
+<div id="results"></div>
+<p><small>Try: <a href="#" data-q="redis cache">redis cache</a> ·
+<a href="#" data-q="private search engine">private search engine</a> ·
+<a href="#" data-q="inverted index">inverted index</a></small></p>
+
+<script>
+// Same documents as documents/*.txt in this repo (first line = title).
+const DOCUMENTS = [
+  { title: "Python Basics", path: "documents/python-basics.txt", text: "Python is a readable, general purpose programming language. Variables hold values, functions group reusable code, and lists and dictionaries store collections. Python is often used for scripts, automation, web backends, and data work because its standard library covers files, networking, and testing without extra installs." },
+  { title: "Redis Explained", path: "documents/redis-explained.txt", text: "Redis is an in-memory key-value store. It keeps data in RAM, so reads and writes are very fast, and it supports strings, lists, sets, sorted sets, and hashes. Redis is commonly used as a cache, a session store, and a message queue. Persistence comes from snapshots and an append-only file, which replay writes after a restart." },
+  { title: "How Search Works", path: "documents/how-search-works.txt", text: "A search engine builds an inverted index that maps each word to the documents containing it. At query time it looks up the query words, scores each candidate document, and ranks the best matches first. TF-IDF scoring rewards rare, informative words more than common words, and title matches are a stronger signal than body matches." },
+  { title: "Databases From Scratch", path: "documents/databases-from-scratch.txt", text: "A database stores records on disk and retrieves them quickly. A storage engine writes data to pages, a write-ahead log makes writes durable after a crash, and an index such as a B-tree lets the engine find a key without scanning every record. Building one from scratch teaches storage, indexing, and durability in a way using a database never does." },
+  { title: "Private By Design", path: "documents/private-by-design.txt", text: "A private search engine runs on your own machine and indexes only documents you choose. It needs no account, no API key, and no cloud service, so your queries and your documents never leave the machine. That makes it easy to explain, easy to audit, and suitable for personal notes and internal documents." }
+];
+
+const STOPWORDS = new Set(["a","an","the","and","or","of","to","in","on","for","with","is","are","was","were","be","by","at","as","it","its","this","that","from","into","you","your","we","our"]);
+
+function tokenize(text) {
+  return (text.toLowerCase().match(/[a-z0-9]+/g) || []).filter(t => !STOPWORDS.has(t));
+}
+
+// Build inverted index: term -> {docIndex: tf}, plus IDF.
+const docs = DOCUMENTS.map(d => {
+  const tokens = tokenize(d.text);
+  const tf = {};
+  tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
+  return { ...d, tokens, tf, titleTokens: new Set(tokenize(d.title)) };
+});
+const index = {};
+docs.forEach((doc, i) => {
+  for (const [term, count] of Object.entries(doc.tf)) {
+    (index[term] = index[term] || {})[i] = count;
+  }
+});
+const idf = {};
+for (const [term, postings] of Object.entries(index)) {
+  idf[term] = Math.log(1 + docs.length / Object.keys(postings).length);
+}
+
+function snippet(text, terms) {
+  const lower = text.toLowerCase();
+  let pos = Infinity;
+  terms.forEach(t => { const p = lower.indexOf(t); if (p >= 0 && p < pos) pos = p; });
+  if (!isFinite(pos)) return text.slice(0, 200);
+  const start = Math.max(0, pos - 60);
+  const end = Math.min(text.length, pos + 120);
+  return (start > 0 ? "…" : "") + text.slice(start, end).trim() + (end < text.length ? "…" : "");
+}
+
+function search(query) {
+  const terms = [...new Set(tokenize(query))];
+  if (!terms.length) return [];
+  const scores = {};
+  const matched = {};
+  terms.forEach(term => {
+    if (!index[term]) return;
+    for (const [docIndex, tf] of Object.entries(index[term])) {
+      let score = (1 + Math.log(tf)) * idf[term];
+      if (docs[docIndex].titleTokens.has(term)) score *= 1.5;
+      scores[docIndex] = (scores[docIndex] || 0) + score;
+      (matched[docIndex] = matched[docIndex] || new Set()).add(term);
+    }
+  });
+  return Object.entries(scores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([docIndex, score]) => {
+      const doc = docs[docIndex];
+      return { title: doc.title, path: doc.path, score: Math.round(score * 1000) / 1000,
+               matchedTerms: [...matched[docIndex]].sort(), snippet: snippet(doc.text, matched[docIndex]) };
+    });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function render(query) {
+  const out = document.getElementById("results");
+  if (!query.trim()) { out.innerHTML = ""; return; }
+  const results = search(query);
+  if (!results.length) {
+    out.innerHTML = `<p>No results for <b>${escapeHtml(query)}</b>.</p>`;
+    return;
+  }
+  out.innerHTML = `<p>${results.length} result(s) for <b>${escapeHtml(query)}</b>:</p>` +
+    results.map(r => `<div class="result"><b>${escapeHtml(r.title)}</b> <span class="score">score ${r.score} · ${escapeHtml(r.path)}</span><div>${escapeHtml(r.snippet)}</div></div>`).join("");
+}
+
+document.getElementById("search-form").addEventListener("submit", e => {
+  e.preventDefault();
+  render(document.getElementById("q").value);
+});
+document.querySelectorAll("[data-q]").forEach(a => {
+  a.addEventListener("click", e => {
+    e.preventDefault();
+    document.getElementById("q").value = a.dataset.q;
+    render(a.dataset.q);
+  });
+});
+// Support ?q=... links, e.g. from GitHub Pages.
+const params = new URLSearchParams(location.search);
+if (params.get("q")) {
+  document.getElementById("q").value = params.get("q");
+  render(params.get("q"));
+}
+</script>
+</body>
+</html>
