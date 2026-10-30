@@ -63,7 +63,8 @@
     <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" aria-label="Search your documents and the web" autofocus>
     <button class="search-btn" type="submit">Search</button>
   </form>
-  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box.</p>
+  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. The address bar updates to a shareable link for your search — copy it to send someone the same results.</p>
+  <p style="margin-top:-6px"><button class="theme-btn" id="copy-link" type="button" hidden>🔗 Copy search link</button> <span id="copy-status" class="muted"></span></p>
 
   <div class="chips">
     <a href="#" data-q="Albert Einstein">Albert Einstein</a>
@@ -270,7 +271,21 @@ async function webSearch(query) {
 
 function render(query) {
   const resultsEl = document.getElementById("results");
-  if (!query.trim()) { resultsEl.innerHTML = ""; return; }
+  const copyBtn = document.getElementById("copy-link");
+  const copyStatus = document.getElementById("copy-status");
+  if (!query.trim()) {
+    resultsEl.innerHTML = "";
+    copyBtn.hidden = true; copyStatus.textContent = "";
+    // Clear any previous search from the address bar, in place.
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    return;
+  }
+  // Shareable search link: update the address bar in place so the copied
+  // URL opens this same search. replaceState (not pushState) adds no new
+  // history entry, and nothing is stored — same no-history rule as the
+  // theme toggle, just the URL you can already see and copy.
+  try { history.replaceState(null, "", "?q=" + encodeURIComponent(query.trim())); } catch (e) {}
+  copyBtn.hidden = false; copyStatus.textContent = "";
   const results = localSearch(query);
   if (!results.length) resultsEl.innerHTML = `<section class="card"><p>No local documents matched <b>${esc(query)}</b>.</p></section>`;
   else resultsEl.innerHTML = `<section class="card"><h2>My documents</h2><p class="muted">${results.length} result(s), ranked by TF-IDF.</p>` +
@@ -302,6 +317,18 @@ function setTheme(light) {
   themeBtn.textContent = light ? "🌙 Dark mode" : "☀️ Light mode";
 }
 themeBtn.addEventListener("click", () => setTheme(!document.body.classList.contains("light")));
+
+// Copy search link: copies the current (already shareable) URL, so a
+// pasted link opens this exact search. In-memory only, nothing stored.
+document.getElementById("copy-link").addEventListener("click", async () => {
+  const status = document.getElementById("copy-status");
+  try {
+    await navigator.clipboard.writeText(location.href);
+    status.textContent = "Link copied — paste it anywhere to open this search.";
+  } catch (e) {
+    status.textContent = "Couldn't copy automatically — copy the link from your address bar.";
+  }
+});
 </script>
 </body>
 </html>
