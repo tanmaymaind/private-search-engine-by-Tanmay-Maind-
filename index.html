@@ -20,6 +20,14 @@
   input[type="search"] { flex: 1; padding: 14px 16px; font-size: 17px; border-radius: 14px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; }
   body.light input[type="search"] { background: #fff; color: #111827; border-color: #d1d5db; }
   input[type="search"]:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.25); }
+  .search-wrap { flex: 1; position: relative; min-width: 0; }
+  .search-wrap input[type="search"] { width: 100%; box-sizing: border-box; }
+  .suggestions { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #111c33; border: 1px solid #334155; border-radius: 14px; overflow: hidden; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  body.light .suggestions { background: #fff; border-color: #d1d5db; }
+  .suggestions[hidden] { display: none; }
+  .suggestions button { display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 10px 16px; cursor: pointer; }
+  .suggestions button:hover, .suggestions button.active { background: #1e293b; }
+  body.light .suggestions button:hover, body.light .suggestions button.active { background: #eef2f7; }
   .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: #2563eb; color: #fff; cursor: pointer; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .chips a { color: #93c5fd; text-decoration: none; border: 1px solid #334155; border-radius: 999px; padding: 5px 12px; font-size: 14px; }
@@ -60,10 +68,13 @@
   </header>
 
   <form id="search-form">
-    <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" aria-label="Search your documents and the web" autofocus>
+    <div class="search-wrap">
+      <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" aria-label="Search your documents and the web" autocomplete="off" autofocus>
+      <div class="suggestions" id="suggestions" hidden></div>
+    </div>
     <button class="search-btn" type="submit">Search</button>
   </form>
-  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. The address bar updates to a shareable link for your search — copy it to send someone the same results.</p>
+  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. Start typing and suggestions appear below the box — use ↑ ↓ and Enter to pick one. The address bar updates to a shareable link for your search — copy it to send someone the same results.</p>
   <p style="margin-top:-6px"><button class="theme-btn" id="copy-link" type="button" hidden>🔗 Copy search link</button> <span id="copy-status" class="muted"></span></p>
 
   <div class="chips">
@@ -293,8 +304,44 @@ function render(query) {
   webSearch(query);
 }
 
-document.getElementById("search-form").addEventListener("submit", e => { e.preventDefault(); render(document.getElementById("q").value); });
-document.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); document.getElementById("q").value = a.dataset.q; render(a.dataset.q); }));
+// Search suggestions: as you type, Wikipedia's free opensearch API
+// (no key, the same free source as the web card) suggests matching
+// topics. In-memory only — suggestions are fetched live and never
+// stored, like everything else on this page.
+const suggEl = document.getElementById("suggestions");
+const qInput = document.getElementById("q");
+let suggTimer = null, suggItems = [], suggActive = -1, suggSeq = 0;
+function hideSuggestions() { suggEl.hidden = true; suggEl.innerHTML = ""; suggItems = []; suggActive = -1; }
+function paintSuggestions() {
+  suggEl.innerHTML = suggItems.map((s, i) => `<button type="button" class="${i === suggActive ? "active" : ""}" data-i="${i}">${esc(s)}</button>`).join("");
+  suggEl.hidden = !suggItems.length;
+  suggEl.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", e => { e.preventDefault(); qInput.value = suggItems[+b.dataset.i]; hideSuggestions(); render(qInput.value); }));
+}
+qInput.addEventListener("input", () => {
+  clearTimeout(suggTimer);
+  const v = qInput.value.trim();
+  if (v.length < 2) { hideSuggestions(); return; }
+  suggTimer = setTimeout(async () => {
+    const seq = ++suggSeq;
+    try {
+      const res = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(v)}&limit=8&namespace=0&format=json&origin=*`);
+      const data = await res.json();
+      if (seq !== suggSeq) return;
+      suggItems = (data && data[1]) || []; suggActive = -1; paintSuggestions();
+    } catch (e) { hideSuggestions(); }
+  }, 200);
+});
+qInput.addEventListener("keydown", e => {
+  if (suggEl.hidden || !suggItems.length) return;
+  if (e.key === "ArrowDown") { e.preventDefault(); suggActive = (suggActive + 1) % suggItems.length; paintSuggestions(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); suggActive = (suggActive - 1 + suggItems.length) % suggItems.length; paintSuggestions(); }
+  else if (e.key === "Enter" && suggActive >= 0) { e.preventDefault(); qInput.value = suggItems[suggActive]; hideSuggestions(); render(qInput.value); }
+  else if (e.key === "Escape") { hideSuggestions(); }
+});
+qInput.addEventListener("blur", () => setTimeout(hideSuggestions, 150));
+
+document.getElementById("search-form").addEventListener("submit", e => { e.preventDefault(); hideSuggestions(); render(document.getElementById("q").value); });
+document.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); hideSuggestions(); document.getElementById("q").value = a.dataset.q; render(a.dataset.q); }));
 const params = new URLSearchParams(location.search);
 if (params.get("q")) { document.getElementById("q").value = params.get("q"); render(params.get("q")); }
 

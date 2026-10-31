@@ -36,8 +36,10 @@ Wikipedia for a person or topic, many photos in-page (up to 24 from
 Wikimedia Commons plus up to 12 from Internet Archive), and
 videos played right in the page from many free sites — up to 4 each
 from Wikimedia Commons, Internet Archive, Dailymotion, and PeerTube,
-with video embeds lazy-loaded so a search stays fast, a keyboard
-shortcut: press `/` anywhere to jump to the search box, and shareable
+with video embeds lazy-loaded so a search stays fast, search
+suggestions as you type (up to 8 topics from Wikipedia's free
+opensearch API, no key, picked with ↑ ↓ and Enter, never stored),
+a keyboard shortcut: press `/` anywhere to jump to the search box, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.
