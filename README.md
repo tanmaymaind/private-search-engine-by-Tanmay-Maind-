@@ -28,7 +28,8 @@ python3 app.py
 GitHub Pages can only serve static files, so it cannot run the Python
 app above. `index.html` is a static, client-side version of the same
 search engine: the same documents, the same tokenising, inverted index,
-TF-IDF ranking, title boost, and snippets — all in JavaScript, all in
+TF-IDF ranking, title boost, and snippets with your search words
+highlighted — all in JavaScript, all in
 the browser — plus a clean dark UI and, for any query, a “Results from
 the internet” list (up to 12 Wikipedia articles from its free search API, plus
 related pages from DuckDuckGo when it has any), a web card from

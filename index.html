@@ -53,6 +53,7 @@
   a { color: #93c5fd; }
   body.light a { color: #1d4ed8; }
   .result { margin: 16px 0; }
+  .result mark { background: #facc15; color: #111827; border-radius: 3px; padding: 0 2px; }
   .score { color: #94a3b8; font-size: 13px; }
   .status { color: #94a3b8; }
 </style>
@@ -131,10 +132,18 @@ function localSearch(query) {
   });
   return Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,10).map(([i, score]) => {
     const doc = docs[i];
-    return { title: doc.title, path: doc.path, score: Math.round(score*1000)/1000, snippet: snippet(doc.text, matched[i]) };
+    return { title: doc.title, path: doc.path, score: Math.round(score*1000)/1000, snippet: snippet(doc.text, matched[i]), terms: [...matched[i]] };
   });
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c])); }
+// Highlight the matched search words inside a snippet. The snippet is
+// escaped first, then matched in a single pass, so a search word can never
+// break out of the escaping or nest inside an inserted tag.
+function highlight(text, terms) {
+  const safe = (terms || []).filter(Boolean).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!safe.length) return esc(text);
+  return esc(text).replace(new RegExp(`(${safe.join("|")})`, "gi"), "<mark>$1</mark>");
+}
 function cleanTitle(t) { return t.replace(/^File:/, "").replace(/\.(jpg|jpeg|png|webm|ogv)$/i, "").replace(/_/g, " "); }
 
 async function webSearch(query) {
@@ -300,7 +309,7 @@ function render(query) {
   const results = localSearch(query);
   if (!results.length) resultsEl.innerHTML = `<section class="card"><p>No local documents matched <b>${esc(query)}</b>.</p></section>`;
   else resultsEl.innerHTML = `<section class="card"><h2>My documents</h2><p class="muted">${results.length} result(s), ranked by TF-IDF.</p>` +
-    results.map(r => `<div class="result"><b>${esc(r.title)}</b> <span class="score">score ${r.score} · ${esc(r.path)}</span><div>${esc(r.snippet)}</div></div>`).join("") + `</section>`;
+    results.map(r => `<div class="result"><b>${esc(r.title)}</b> <span class="score">score ${r.score} · ${esc(r.path)}</span><div>${highlight(r.snippet, r.terms)}</div></div>`).join("") + `</section>`;
   webSearch(query);
 }
 
