@@ -40,7 +40,10 @@ from Wikimedia Commons, Internet Archive, Dailymotion, and PeerTube,
 with video embeds lazy-loaded so a search stays fast, search
 suggestions as you type (up to 8 topics from Wikipedia's free
 opensearch API, no key, picked with ↑ ↓ and Enter, never stored),
-a keyboard shortcut: press `/` anywhere to jump to the search box, and shareable
+a keyboard shortcut: press `/` anywhere to jump to the search box, a
+“Clear” button that empties the search box and every result section and
+removes the shareable link from the address bar in one tap (in-memory
+only, nothing stored), and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.

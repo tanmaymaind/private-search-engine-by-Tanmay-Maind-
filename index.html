@@ -29,6 +29,8 @@
   .suggestions button:hover, .suggestions button.active { background: #1e293b; }
   body.light .suggestions button:hover, body.light .suggestions button.active { background: #eef2f7; }
   .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: #2563eb; color: #fff; cursor: pointer; }
+  .clear-btn { padding: 14px 16px; font-size: 16px; border: 1px solid #334155; border-radius: 14px; background: #1e293b; color: #e6edf7; cursor: pointer; }
+  body.light .clear-btn { background: #fff; color: #111827; border-color: #d1d5db; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .chips a { color: #93c5fd; text-decoration: none; border: 1px solid #334155; border-radius: 999px; padding: 5px 12px; font-size: 14px; }
   body.light .chips a { color: #1d4ed8; border-color: #d1d5db; }
@@ -74,8 +76,9 @@
       <div class="suggestions" id="suggestions" hidden></div>
     </div>
     <button class="search-btn" type="submit">Search</button>
+    <button class="clear-btn" id="clear-btn" type="button" aria-label="Clear search and results">✕ Clear</button>
   </form>
-  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. Start typing and suggestions appear below the box — use ↑ ↓ and Enter to pick one. The address bar updates to a shareable link for your search — copy it to send someone the same results.</p>
+  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. Start typing and suggestions appear below the box — use ↑ ↓ and Enter to pick one. The address bar updates to a shareable link for your search — copy it to send someone the same results. <b>Clear</b> wipes the box, the results, and the shareable link in one tap, so the next search starts clean.</p>
   <p style="margin-top:-6px"><button class="theme-btn" id="copy-link" type="button" hidden>🔗 Copy search link</button> <span id="copy-status" class="muted"></span></p>
 
   <div class="chips">
@@ -350,6 +353,21 @@ qInput.addEventListener("keydown", e => {
 qInput.addEventListener("blur", () => setTimeout(hideSuggestions, 150));
 
 document.getElementById("search-form").addEventListener("submit", e => { e.preventDefault(); hideSuggestions(); render(document.getElementById("q").value); });
+
+// Clear: one tap empties the box and every result section, removes the
+// shareable ?q= link from the address bar, and puts focus back in the
+// box for the next search. In-memory only — nothing is stored, and an
+// empty render() alone would leave the web/photo/video sections behind,
+// so those are cleared explicitly here.
+document.getElementById("clear-btn").addEventListener("click", () => {
+  hideSuggestions();
+  document.getElementById("q").value = "";
+  ["web", "internet", "photos", "videos", "results"].forEach(id => { document.getElementById(id).innerHTML = ""; });
+  document.getElementById("copy-link").hidden = true;
+  document.getElementById("copy-status").textContent = "";
+  try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  document.getElementById("q").focus();
+});
 document.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); hideSuggestions(); document.getElementById("q").value = a.dataset.q; render(a.dataset.q); }));
 const params = new URLSearchParams(location.search);
 if (params.get("q")) { document.getElementById("q").value = params.get("q"); render(params.get("q")); }
