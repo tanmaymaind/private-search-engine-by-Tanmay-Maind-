@@ -98,11 +98,11 @@
   </div>
   <p class="muted"><b>🔒 No history, no account.</b> PrivaSearch does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
-  <div id="web"></div>
+  <div id="web" aria-live="polite"></div>
   <div id="internet"></div>
-  <div id="photos"></div>
-  <div id="videos"></div>
-  <div id="results"></div>
+  <div id="photos" aria-live="polite"></div>
+  <div id="videos" aria-live="polite"></div>
+  <div id="results" aria-live="polite"></div>
   <footer class="brand-footer"><p class="muted">🔒 <b>PrivaSearch</b> — your searches stay yours.</p></footer>
 </div>
 
@@ -164,7 +164,7 @@ async function webSearch(query) {
   const internetEl = document.getElementById("internet");
   const photosEl = document.getElementById("photos");
   const videosEl = document.getElementById("videos");
-  webEl.innerHTML = `<p class="status">Searching the web…</p>`; internetEl.innerHTML = ""; photosEl.innerHTML = ""; videosEl.innerHTML = "";
+  webEl.innerHTML = `<p class="status">Searching the web…</p>`; internetEl.innerHTML = ""; photosEl.innerHTML = `<p class="status">Loading photos…</p>`; videosEl.innerHTML = `<p class="status">Loading videos…</p>`;
   const enc = encodeURIComponent(query);
   const stripTags = s => String(s || "").replace(/<[^>]+>/g, "");
   // Results from the internet: a list of web articles for ANY query, not
@@ -224,11 +224,16 @@ async function webSearch(query) {
     internetEl.innerHTML = internetHtml;
   }
 
+  // Photos load from two independent sources; track whether either found
+  // anything, so an empty result says so instead of leaving the loading
+  // note (or silence) in place.
+  let photosFound = false;
   try {
     const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrnamespace=6&gsrlimit=30&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`);
     const data = await res.json();
     const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.thumburl && !/\.webm$/i.test(p.title) && !/\.ogv$/i.test(p.title)) : [];
     if (pages.length) {
+      photosFound = true;
       photosEl.innerHTML = `<section class="card"><h3>Photos — Wikimedia Commons</h3><div class="grid">` +
         pages.slice(0,24).map(p => `<a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener"><img src="${esc(p.imageinfo[0].thumburl)}" alt="${esc(cleanTitle(p.title))}" loading="lazy"><figcaption>${esc(cleanTitle(p.title))}</figcaption></a>`).join("") +
         `</div><p class="muted">Photos: Wikimedia Commons (free to reuse, check each photo's licence).</p></section>`;
@@ -242,6 +247,7 @@ async function webSearch(query) {
     const data = await res.json();
     const docs2 = data?.response?.docs || [];
     if (docs2.length) {
+      photosFound = true;
       const block = `<section class="card"><h3>Photos — Internet Archive</h3><div class="grid">` +
         docs2.slice(0,12).map(d => `<a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener"><img src="https://archive.org/services/img/${esc(d.identifier)}" alt="${esc(d.title)}" loading="lazy"><figcaption>${esc(d.title)}</figcaption></a>`).join("") +
         `</div></section>`;
@@ -251,11 +257,17 @@ async function webSearch(query) {
 
   // See ALL photos on the big image search engines, in one tap — this is
   // where Google-style “every photo on the internet” results live.
+  // If neither free source returned a photo, say so plainly instead of
+  // leaving the “Loading photos…” note up.
+  if (!photosFound) photosEl.innerHTML = `<p class="muted">No in-page photos were found for this query — the links below open the complete photo results.</p>`;
   photosEl.innerHTML += `<section class="card"><h3>See all photos for “${esc(query)}”</h3><p><a href="https://www.google.com/search?tbm=isch&q=${enc}" target="_blank" rel="noopener">Google Images</a> · <a href="https://www.bing.com/images/search?q=${enc}" target="_blank" rel="noopener">Bing Images</a> · <a href="https://duckduckgo.com/?q=${enc}&iax=images&ia=images" target="_blank" rel="noopener">DuckDuckGo Images</a> · <a href="https://search.brave.com/images?q=${enc}" target="_blank" rel="noopener">Brave Images</a> · <a href="https://yandex.com/images/search?text=${enc}" target="_blank" rel="noopener">Yandex Images</a> · <a href="https://commons.wikimedia.org/w/index.php?search=${enc}&title=Special:MediaSearch&type=image" target="_blank" rel="noopener">All Commons photos</a> · <a href="https://openverse.org/search/image?q=${enc}" target="_blank" rel="noopener">Openverse</a> · <a href="https://www.pexels.com/search/${enc}/" target="_blank" rel="noopener">Pexels</a> · <a href="https://pixabay.com/images/search/${enc}/" target="_blank" rel="noopener">Pixabay</a></p><p class="muted">No free site can copy Google's whole photo index in-page — Google, Bing and the others above crawl billions of pages. The in-page photos above are every free result we can fetch without a paid key; the links here open the complete result set for the same query.</p></section>`;
 
   // Videos from ANY free video site, played right here in the page — not only YouTube.
   // Each source is fetched independently, so one failing site never breaks the others.
   let videoHtml = `<section class="card"><h3>Videos — all free sources, in-page</h3><p class="muted">Tap play on any player below. Up to 4 players from each free site, so up to 16 in-page videos — not just 2 per site. Nothing you play is recorded by this page.</p>`;
+  // Same rule as photos: if no source yields a player, say so plainly
+  // instead of showing a bare header above the see-all links.
+  let videoFound = false;
 
   // 1. Wikimedia Commons — direct <video> player.
   try {
@@ -263,6 +275,7 @@ async function webSearch(query) {
     const data = await res.json();
     const pages = data?.query?.pages ? Object.values(data.query.pages).filter(p => p.imageinfo?.[0]?.url) : [];
     if (pages.length) {
+      videoFound = true;
       videoHtml += `<div class="video-source"><h4>Wikimedia Commons</h4><div class="grid">` + pages.slice(0,4).map(p => `<figure style="margin:0"><video controls preload="none" poster="${esc(p.imageinfo[0].thumburl || "")}" src="${esc(p.imageinfo[0].url)}"></video><figcaption>${esc(cleanTitle(p.title))} — <a href="${esc(p.imageinfo[0].descriptionurl)}" target="_blank" rel="noopener">Open on Commons</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
@@ -274,6 +287,7 @@ async function webSearch(query) {
     const data = await res.json();
     const docs2 = data?.response?.docs || [];
     if (docs2.length) {
+      videoFound = true;
       videoHtml += `<div class="video-source"><h4>Internet Archive</h4><div class="grid">` + docs2.slice(0,4).map(d => `<figure style="margin:0"><iframe src="https://archive.org/embed/${esc(d.identifier)}" loading="lazy" title="${esc(d.title)}" allowfullscreen></iframe><figcaption>${esc(d.title)} — <a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener">Open on Archive.org</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
@@ -284,6 +298,7 @@ async function webSearch(query) {
     const data = await res.json();
     const list = data?.list || [];
     if (list.length) {
+      videoFound = true;
       videoHtml += `<div class="video-source"><h4>Dailymotion</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="https://www.dailymotion.com/embed/video/${esc(v.id)}" loading="lazy" title="${esc(v.title)}" allowfullscreen allow="autoplay; fullscreen"></iframe><figcaption>${esc(v.title)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on Dailymotion</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
@@ -294,10 +309,12 @@ async function webSearch(query) {
     const data = await res.json();
     const list = data?.data || [];
     if (list.length) {
+      videoFound = true;
       videoHtml += `<div class="video-source"><h4>PeerTube</h4><div class="grid">` + list.slice(0,4).map(v => `<figure style="margin:0"><iframe src="${esc(v.embedUrl)}" loading="lazy" title="${esc(v.name)}" allowfullscreen></iframe><figcaption>${esc(v.name)} — <a href="${esc(v.url)}" target="_blank" rel="noopener">Open on PeerTube</a></figcaption></figure>`).join("") + `</div></div>`;
     }
   } catch (e) {}
 
+  if (!videoFound) videoHtml += `<p class="muted">No in-page videos were found for this query — try the see-all links below for the complete video results.</p>`;
   videoHtml += `<h3 style="margin-top:18px">See all videos for “${esc(query)}”</h3><p><a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">YouTube</a> · <a href="https://vimeo.com/search?q=${enc}" target="_blank" rel="noopener">Vimeo</a> · <a href="https://www.google.com/search?tbm=vid&q=${enc}" target="_blank" rel="noopener">Google Videos</a> · <a href="https://www.bing.com/videos/search?q=${enc}" target="_blank" rel="noopener">Bing Videos</a> · <a href="https://duckduckgo.com/?q=${enc}&iax=videos&ia=videos" target="_blank" rel="noopener">DuckDuckGo Videos</a> · <a href="https://search.brave.com/videos?q=${enc}" target="_blank" rel="noopener">Brave Videos</a> · <a href="https://archive.org/search?query=${enc}" target="_blank" rel="noopener">Archive.org</a> · <a href="https://www.dailymotion.com/search/${enc}" target="_blank" rel="noopener">Dailymotion</a> · <a href="https://search.joinpeertube.org/search?search=${enc}" target="_blank" rel="noopener">PeerTube</a></p><p class="muted">YouTube and Vimeo need a paid key to show their videos in-page, so they are one-tap links above — those pages hold their complete video results for this query.</p></section>`;
   videosEl.innerHTML = videoHtml;
 }
