@@ -1,6 +1,6 @@
-# Private Search Engine
+# PrivaSearch — Private Search Engine
 
-A search engine that runs entirely on your own machine. It indexes only
+PrivaSearch is a search engine that runs entirely on your own machine. It indexes only
 the documents you put in `documents/` — no account, no API key, no cloud
 service, and no data leaving the machine.
 
@@ -24,6 +24,8 @@ python3 app.py
 ```
 
 ## Website version (GitHub Pages)
+
+The site is branded **PrivaSearch**, with a logo header, a gradient Search button, and the tagline “Search privately. No history, no account, no tracking.”
 
 GitHub Pages can only serve static files, so it cannot run the Python
 app above. `index.html` is a static, client-side version of the same

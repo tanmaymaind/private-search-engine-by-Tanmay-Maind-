@@ -3,14 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Private Search</title>
+<title>PrivaSearch — Private Search, No History</title>
+<meta name="description" content="PrivaSearch: a private search engine. No history, no account, no tracking.">
 <style>
   :root { color-scheme: dark; }
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #0b1220; color: #e6edf7; line-height: 1.55; }
   body.light { background: #f6f7f9; color: #111827; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 48px; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  h1 { margin: 0; font-size: 32px; letter-spacing: -0.02em; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: linear-gradient(135deg, #2563eb, #06b6d4); box-shadow: 0 8px 24px rgba(37,99,235,.35); flex-shrink: 0; }
+  h1 { margin: 0; font-size: 38px; letter-spacing: -0.02em; line-height: 1.1; }
+  h1 .accent { color: #38bdf8; }
+  body.light h1 .accent { color: #0284c7; }
+  .brand-footer { text-align: center; margin-top: 32px; }
   .tagline { color: #94a3b8; margin: 4px 0 0; }
   body.light .tagline { color: #64748b; }
   button, input { font: inherit; }
@@ -28,7 +34,7 @@
   .suggestions button { display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 10px 16px; cursor: pointer; }
   .suggestions button:hover, .suggestions button.active { background: #1e293b; }
   body.light .suggestions button:hover, body.light .suggestions button.active { background: #eef2f7; }
-  .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: #2563eb; color: #fff; cursor: pointer; }
+  .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(37,99,235,.3); }
   .clear-btn { padding: 14px 16px; font-size: 16px; border: 1px solid #334155; border-radius: 14px; background: #1e293b; color: #e6edf7; cursor: pointer; }
   body.light .clear-btn { background: #fff; color: #111827; border-color: #d1d5db; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -63,9 +69,12 @@
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <h1>Private Search</h1>
-      <p class="tagline">Your documents, plus the web — in one clean search.</p>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">🔍</div>
+      <div>
+        <h1>Priva<span class="accent">Search</span></h1>
+        <p class="tagline">Search privately. No history, no account, no tracking.</p>
+      </div>
     </div>
     <button class="theme-btn" id="theme-btn" type="button">☀️ Light mode</button>
   </header>
@@ -87,13 +96,14 @@
     <a href="#" data-q="redis cache">redis cache</a>
     <a href="#" data-q="private search engine">private search engine</a>
   </div>
-  <p class="muted"><b>🔒 No history, no account.</b> This search engine does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
+  <p class="muted"><b>🔒 No history, no account.</b> PrivaSearch does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web"></div>
   <div id="internet"></div>
   <div id="photos"></div>
   <div id="videos"></div>
   <div id="results"></div>
+  <footer class="brand-footer"><p class="muted">🔒 <b>PrivaSearch</b> — your searches stay yours.</p></footer>
 </div>
 
 <script>

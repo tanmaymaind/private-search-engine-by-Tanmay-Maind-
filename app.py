@@ -69,7 +69,7 @@ def page(query: str = "", results: list | None = None, web: dict | None = None) 
     q = html.escape(query, quote=True)
     body = f"""<!doctype html>
 <html><head><meta charset="utf-8">
-<title>Private Search</title>
+<title>PrivaSearch — Private Search, No History</title>
 <style>
 body {{ font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }}
 input {{ width: 70%; padding: 10px; font-size: 16px; }}
@@ -77,7 +77,7 @@ button {{ padding: 10px 16px; font-size: 16px; }}
 .result {{ margin: 20px 0; }} .score {{ color: #666; font-size: 13px; }}
 small {{ color: #666; }}
 </style></head><body>
-<h1>Private Search</h1>
+<h1>PrivaSearch</h1>
 <p><small>Runs locally. Local documents are indexed from <code>documents/</code>
 only, and this app stores no search history and no watch history.
 A web card below is fetched only when you search, to show info,
