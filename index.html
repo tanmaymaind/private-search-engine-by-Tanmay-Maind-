@@ -90,6 +90,14 @@
   .result mark { background: #facc15; color: #111827; border-radius: 3px; padding: 0 2px; }
   .score { color: #94a3b8; font-size: 13px; }
   .status { color: #94a3b8; }
+  /* Advanced Search page: a plain form, same glass card style. */
+  #advanced[hidden] { display: none; }
+  .adv-field { margin: 14px 0; }
+  .adv-field label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .adv-field input, .adv-field select { width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 16px; border-radius: 12px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; }
+  body.light .adv-field input, body.light .adv-field select { background: #fff; color: #111827; border-color: #d1d5db; }
+  .adv-field input:focus, .adv-field select:focus { border-color: #8b5cf6; box-shadow: 0 0 0 4px rgba(139,92,246,.25); }
+  .adv-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
 </style>
 </head>
 <body>
@@ -143,7 +151,27 @@
     <a href="#" data-tab-link="videos">🎬 Videos</a>
     <a href="#" data-tab-link="maps">🗺️ Maps</a>
     <a href="#" data-tab-link="shopping">🛍️ Shopping</a>
+    <a href="#" id="advanced-link">🔍 Advanced Search</a>
   </div>
+  <section id="advanced" class="card" hidden aria-label="Advanced Search">
+    <h2>Advanced Search</h2>
+    <p class="muted">Fill in what you need — Novara builds one search from all of it and runs it here, in your documents and on the web. Nothing here is stored.</p>
+    <form id="advanced-form">
+      <div class="adv-field"><label for="adv-all">All these words</label><input id="adv-all" type="text" placeholder="e.g. redis cache performance" autocomplete="off"></div>
+      <div class="adv-field"><label for="adv-exact">This exact word or phrase</label><input id="adv-exact" type="text" placeholder="e.g. in-memory key-value store" autocomplete="off"></div>
+      <div class="adv-field"><label for="adv-any">Any of these words</label><input id="adv-any" type="text" placeholder="e.g. cache session queue" autocomplete="off"></div>
+      <div class="adv-field"><label for="adv-none">None of these words</label><input id="adv-none" type="text" placeholder="e.g. database" autocomplete="off"></div>
+      <div class="adv-field"><label for="adv-site">Site or domain (optional)</label><input id="adv-site" type="text" placeholder="e.g. en.wikipedia.org" autocomplete="off"></div>
+      <div class="adv-field"><label for="adv-filetype">File type (optional)</label><select id="adv-filetype"><option value="">Any file type</option><option value="pdf">PDF</option><option value="doc">DOC</option><option value="xls">XLS</option><option value="ppt">PPT</option><option value="txt">TXT</option></select></div>
+      <div class="adv-field"><label for="adv-date">Date (for the whole-web link only)</label><select id="adv-date"><option value="">Any time</option><option value="d">Past 24 hours</option><option value="w">Past week</option><option value="m">Past month</option><option value="y">Past year</option></select></div>
+      <p class="muted" id="adv-preview"></p>
+      <div class="adv-actions">
+        <button class="search-btn" type="submit">Search with these filters</button>
+        <button class="clear-btn" id="advanced-back" type="button">← Back to simple search</button>
+      </div>
+      <p class="muted" id="adv-web-link"></p>
+    </form>
+  </section>
   <p class="muted"><b>🔒 No history, no account.</b> Novara does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web" aria-live="polite"></div>
@@ -151,7 +179,7 @@
   <div id="photos" aria-live="polite"></div>
   <div id="videos" aria-live="polite"></div>
   <div id="results" aria-live="polite"></div>
-  <footer class="brand-footer"><p class="muted">🔒 <b>Novara</b> — your searches stay yours.</p><p><a href="#" class="muted">About</a> · <a href="#" class="muted">Privacy</a> · <a href="#" class="muted">Terms</a> · <a href="#" class="muted">Settings</a> · <a href="#" class="muted">Feedback</a> · <select id="lang" aria-label="Language" style="border-radius:999px;padding:4px 8px"><option>English</option><option>हिन्दी</option><option>Español</option></select> <span id="lang-status" class="muted"></span></p><p class="muted">Banner photo: mountain valley via Unsplash.</p></footer>
+  <footer class="brand-footer"><p class="muted">🔒 <b>Novara</b> — your searches stay yours.</p><p><a href="#" class="muted">About</a> · <a href="#" class="muted">Privacy</a> · <a href="#" class="muted">Terms</a> · <a href="#" class="muted">Settings</a> · <a href="#" id="advanced-link-footer" class="muted">Advanced Search</a> · <a href="#" class="muted">Feedback</a> · <select id="lang" aria-label="Language" style="border-radius:999px;padding:4px 8px"><option>English</option><option>हिन्दी</option><option>Español</option></select> <span id="lang-status" class="muted"></span></p><p class="muted">Banner photo: mountain valley via Unsplash.</p></footer>
 </div>
 
 <script>
@@ -460,6 +488,7 @@ document.getElementById("search-form").addEventListener("submit", e => { e.preve
 // so those are cleared explicitly here.
 document.getElementById("clear-btn").addEventListener("click", () => {
   hideSuggestions();
+  document.getElementById("advanced").hidden = true;
   window.novaraRecent = [];
   document.getElementById("q").value = "";
   ["web", "internet", "photos", "videos", "results"].forEach(id => { document.getElementById(id).innerHTML = ""; });
@@ -558,6 +587,70 @@ themeBtn.addEventListener("click", () => setTheme(!document.body.classList.conta
 if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) setTheme(true);
 document.getElementById("lang").addEventListener("change", e => {
   document.getElementById("lang-status").textContent = "Language set for this session only: " + e.target.value + ".";
+});
+
+// Advanced Search: build one query from the separate fields and run it
+// through the normal search (local documents + web + photos + videos),
+// so the filters actually change the results instead of being a demo.
+// The whole-web link below uses Google's real advanced-search params.
+function buildAdvancedQuery() {
+  const parts = [];
+  const all = document.getElementById("adv-all").value.trim();
+  const exact = document.getElementById("adv-exact").value.trim();
+  const any = document.getElementById("adv-any").value.trim();
+  const none = document.getElementById("adv-none").value.trim();
+  const site = document.getElementById("adv-site").value.trim();
+  const filetype = document.getElementById("adv-filetype").value;
+  if (all) parts.push(all);
+  if (exact) parts.push(`"${exact.replace(/"/g, "")}"`);
+  if (any) parts.push(any.split(/\s+/).filter(Boolean).join(" OR "));
+  if (none) none.split(/\s+/).filter(Boolean).forEach(w => parts.push(`-${w}`));
+  if (site) parts.push(`site:${site}`);
+  if (filetype) parts.push(`filetype:${filetype}`);
+  return parts.join(" ").trim();
+}
+function updateAdvancedPreview() {
+  const q = buildAdvancedQuery();
+  document.getElementById("adv-preview").textContent = q ? `Built query: ${q}` : "";
+  const p = new URLSearchParams();
+  const all = document.getElementById("adv-all").value.trim();
+  const exact = document.getElementById("adv-exact").value.trim();
+  const any = document.getElementById("adv-any").value.trim();
+  const none = document.getElementById("adv-none").value.trim();
+  const site = document.getElementById("adv-site").value.trim();
+  const filetype = document.getElementById("adv-filetype").value;
+  const date = document.getElementById("adv-date").value;
+  if (all) p.set("as_q", all);
+  if (exact) p.set("as_epq", exact);
+  if (any) p.set("as_oq", any);
+  if (none) p.set("as_eq", none);
+  if (site) p.set("as_sitesearch", site);
+  if (filetype) p.set("as_filetype", filetype);
+  if (date) p.set("as_qdr", date);
+  document.getElementById("adv-web-link").innerHTML = [...p.keys()].length
+    ? `<a href="https://www.google.com/search?${p.toString()}" target="_blank" rel="noopener">Search the whole web with these filters on Google →</a>`
+    : "";
+}
+["adv-all", "adv-exact", "adv-any", "adv-none", "adv-site", "adv-filetype", "adv-date"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updateAdvancedPreview);
+  document.getElementById(id).addEventListener("change", updateAdvancedPreview);
+});
+function showAdvanced() {
+  document.getElementById("advanced").hidden = false;
+  document.getElementById("advanced").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("adv-all").focus();
+}
+document.getElementById("advanced-link").addEventListener("click", e => { e.preventDefault(); showAdvanced(); });
+document.getElementById("advanced-link-footer").addEventListener("click", e => { e.preventDefault(); showAdvanced(); });
+document.getElementById("advanced-back").addEventListener("click", () => { document.getElementById("advanced").hidden = true; });
+document.getElementById("advanced-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const q = buildAdvancedQuery();
+  if (!q) { document.getElementById("adv-all").focus(); return; }
+  document.getElementById("advanced").hidden = true;
+  hideSuggestions();
+  document.getElementById("q").value = q;
+  render(q);
 });
 
 // Copy search link: copies the current (already shareable) URL, so a
