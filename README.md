@@ -1,6 +1,6 @@
-# PrivaSearch — Private Search Engine
+# Novara — Private Search Engine
 
-PrivaSearch is a search engine that runs entirely on your own machine. It indexes only
+Novara (formerly PrivaSearch) is a search engine that runs entirely on your own machine. It indexes only
 the documents you put in `documents/` — no account, no API key, no cloud
 service, and no data leaving the machine.
 
@@ -25,7 +25,7 @@ python3 app.py
 
 ## Website version (GitHub Pages)
 
-The site is branded **PrivaSearch**, with a logo header, a gradient Search button, and the tagline “Search privately. No history, no account, no tracking.”
+The site is branded **Novara**, with a centered logo header, an Inter typeface, a blue-violet gradient Search button, glass cards, tabs (All, Images, Videos, News, Maps, Shopping, Books), an animated placeholder, and the tagline “Search the web, privately. No history, no account, no tracking.”
 
 GitHub Pages can only serve static files, so it cannot run the Python
 app above. `index.html` is a static, client-side version of the same

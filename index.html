@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PrivaSearch — Private Search, No History</title>
-<meta name="description" content="PrivaSearch: a private search engine. No history, no account, no tracking.">
+<title>Novara — Private Search, No History</title>
+<meta name="description" content="Novara: a private search engine. No history, no account, no tracking.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root { color-scheme: dark; }
   /* Clean theme, no green: a neutral dark page, and the mountain
@@ -12,17 +14,26 @@
      The photo sits behind the search bar itself, with just a light
      dark tint so the bar stays readable, and the rest of the page
      below it is plain and clean. */
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #e6edf7; line-height: 1.55; background: #0b1220; }
-  body.light { background: #f6f7f9; color: #111827; }
+  :root { --accent: linear-gradient(135deg, #2563eb, #8b5cf6); --accent-solid: #6366f1; --radius: 20px; --shadow: 0 12px 32px rgba(0,0,0,.28); }
+  body { font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #e6edf7; line-height: 1.55; background: #0f172a; }
+  body.light { background: #ffffff; color: #111827; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   .hero { border-radius: 20px; margin: 20px 0 6px; padding: 22px 18px; background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.25)), url("https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=85"); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 12px 30px rgba(0,0,0,.3); }
   .hero form { margin: 0; }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 48px; }
-  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 28px 18px 48px; }
+  header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
   .brand { display: flex; align-items: center; gap: 14px; }
-  .logo { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: linear-gradient(135deg, #2563eb, #06b6d4); box-shadow: 0 8px 24px rgba(37,99,235,.35); flex-shrink: 0; }
-  h1 { margin: 0; font-size: 38px; letter-spacing: -0.02em; line-height: 1.1; }
-  h1 .accent { color: #38bdf8; }
-  body.light h1 .accent { color: #0284c7; }
+  .logo { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #fff; background: var(--accent); box-shadow: 0 10px 26px rgba(99,102,241,.45); flex-shrink: 0; }
+  h1 { margin: 0; font-size: 48px; letter-spacing: -0.03em; line-height: 1.05; font-weight: 800; }
+  h1 .accent { color: #a78bfa; }
+  body.light h1 .accent { color: #7c3aed; }
+  .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid #1e293b; margin: 18px 0 4px; }
+  body.light .tabs { border-color: #e5e7eb; }
+  .tab-btn { background: none; border: 0; border-bottom: 3px solid transparent; color: #94a3b8; padding: 10px 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .tab-btn.active { color: #e6edf7; border-bottom-color: #8b5cf6; }
+  body.light .tab-btn.active { color: #111827; }
+  .icon-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 999px; border: 0; background: transparent; cursor: pointer; font-size: 17px; }
+  .icon-btn:hover { background: rgba(148,163,184,.2); }
   .brand-footer { text-align: center; margin-top: 32px; }
   .tagline { color: #94a3b8; margin: 4px 0 0; }
   body.light .tagline { color: #64748b; }
@@ -35,9 +46,10 @@
   .theme-btn { background: rgba(255,255,255,0.14); color: #e6edf7; border: 1px solid rgba(255,255,255,0.35); padding: 8px 14px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -4px 8px rgba(0,0,0,0.15), 0 6px 18px rgba(0,0,0,0.25); }
   body.light .theme-btn { background: rgba(255,255,255,0.65); color: #111827; border-color: rgba(255,255,255,0.85); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 18px rgba(0,0,0,0.12); }
   form { display: flex; gap: 10px; margin: 22px 0 12px; }
-  input[type="search"] { flex: 1; padding: 14px 16px; font-size: 17px; border-radius: 14px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; }
+  input[type="search"] { flex: 1; padding: 15px 96px 15px 48px; font-size: 17px; border-radius: 999px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+  .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 18px; pointer-events: none; }
   body.light input[type="search"] { background: #fff; color: #111827; border-color: #d1d5db; }
-  input[type="search"]:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.25); }
+  input[type="search"]:focus { border-color: #8b5cf6; box-shadow: 0 0 0 4px rgba(139,92,246,.25), 0 8px 28px rgba(139,92,246,.25); }
   .search-wrap { flex: 1; position: relative; min-width: 0; }
   .search-wrap input[type="search"] { width: 100%; box-sizing: border-box; }
   .suggestions { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #111c33; border: 1px solid #334155; border-radius: 14px; overflow: hidden; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
@@ -46,14 +58,16 @@
   .suggestions button { display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 10px 16px; cursor: pointer; }
   .suggestions button:hover, .suggestions button.active { background: #1e293b; }
   body.light .suggestions button:hover, body.light .suggestions button.active { background: #eef2f7; }
-  .search-btn { padding: 14px 22px; font-size: 16px; font-weight: 600; border: 1px solid rgba(255,255,255,0.4); background: linear-gradient(135deg, rgba(37,99,235,0.9), rgba(6,182,212,0.9)); color: #fff; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -6px 12px rgba(0,0,0,0.15), 0 8px 20px rgba(37,99,235,0.35); }
+  .search-btn { padding: 14px 22px; font-size: 16px; font-weight: 600; border: 1px solid rgba(255,255,255,0.4); background: var(--accent); color: #fff; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -6px 12px rgba(0,0,0,0.15), 0 8px 20px rgba(99,102,241,0.4); }
   .clear-btn { padding: 14px 18px; font-size: 16px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.14); color: #e6edf7; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -4px 8px rgba(0,0,0,0.15), 0 6px 18px rgba(0,0,0,0.25); }
   body.light .clear-btn { background: rgba(255,255,255,0.65); color: #111827; border-color: rgba(255,255,255,0.85); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 18px rgba(0,0,0,0.12); }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .chips a { color: #93c5fd; text-decoration: none; border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; padding: 5px 12px; font-size: 14px; background: rgba(11, 28, 51, 0.45); backdrop-filter: blur(10px) saturate(140%); -webkit-backdrop-filter: blur(10px) saturate(140%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(0,0,0,0.2); }
   body.light .chips a { color: #1d4ed8; border-color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.6); }
-  .card { background: #111c33; border: 1px solid #1e293b; border-radius: 18px; padding: 18px; margin: 16px 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .card { background: rgba(30,41,59,0.75); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); padding: 18px; margin: 16px 0; box-shadow: var(--shadow); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(0,0,0,.35); }
   body.light .card { background: #fff; border-color: #e5e7eb; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+  #web .card { border: 1px solid rgba(139,92,246,0.55); box-shadow: 0 0 0 1px rgba(139,92,246,0.2), var(--shadow); }
   .card h2 { margin: 0 0 8px; font-size: 20px; }
   .card h3 { margin: 0 0 10px; font-size: 17px; }
   .muted { color: #94a3b8; font-size: 14px; }
@@ -82,10 +96,10 @@
 <div class="wrap">
   <header>
     <div class="brand">
-      <div class="logo" aria-hidden="true">🔍</div>
+      <div class="logo" aria-hidden="true">N</div>
       <div>
-        <h1>Priva<span class="accent">Search</span></h1>
-        <p class="tagline">Search privately. No history, no account, no tracking.</p>
+        <h1>Nova<span class="accent">ra</span></h1>
+        <p class="tagline">Search the web, privately. No history, no account, no tracking.</p>
       </div>
     </div>
     <button class="theme-btn" id="theme-btn" type="button">☀️ Light mode</button>
@@ -94,13 +108,26 @@
   <div class="hero" role="img" aria-label="Mountain valley with sunlight">
   <form id="search-form">
     <div class="search-wrap">
-      <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents… e.g. Albert Einstein" aria-label="Search your documents and the web" autocomplete="off" autofocus>
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input id="q" name="q" type="search" placeholder="Search a person, a topic, or your documents…" aria-label="Search your documents and the web" autocomplete="off" autofocus>
+      <button class="icon-btn" id="voice-btn" type="button" aria-label="Voice search" title="Voice search" style="right: 48px;">🎤</button>
+      <button class="icon-btn" id="camera-btn" type="button" aria-label="Image search" title="Image search" style="right: 8px;">📷</button>
       <div class="suggestions" id="suggestions" hidden></div>
     </div>
     <button class="search-btn" type="submit">Search</button>
     <button class="clear-btn" id="clear-btn" type="button" aria-label="Clear search and results">✕ Clear</button>
   </form>
   </div>
+  <nav class="tabs" aria-label="Search categories">
+    <button class="tab-btn active" type="button" data-tab="all">All</button>
+    <button class="tab-btn" type="button" data-tab="images">Images</button>
+    <button class="tab-btn" type="button" data-tab="videos">Videos</button>
+    <button class="tab-btn" type="button" data-tab="news">News</button>
+    <button class="tab-btn" type="button" data-tab="maps">Maps</button>
+    <button class="tab-btn" type="button" data-tab="shopping">Shopping</button>
+    <button class="tab-btn" type="button" data-tab="books">Books</button>
+  </nav>
+  <div id="tab-extra"></div>
   <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. Start typing and suggestions appear below the box — use ↑ ↓ and Enter to pick one. The address bar updates to a shareable link for your search — copy it to send someone the same results. <b>Clear</b> wipes the box, the results, and the shareable link in one tap, so the next search starts clean.</p>
   <p style="margin-top:-6px"><button class="theme-btn" id="copy-link" type="button" hidden>🔗 Copy search link</button> <span id="copy-status" class="muted"></span></p>
 
@@ -110,14 +137,21 @@
     <a href="#" data-q="redis cache">redis cache</a>
     <a href="#" data-q="private search engine">private search engine</a>
   </div>
-  <p class="muted"><b>🔒 No history, no account.</b> PrivaSearch does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
+  <div class="chips" style="margin-top:8px">
+    <a href="#" data-tab-link="news">📰 News</a>
+    <a href="#" data-tab-link="images">🖼️ Images</a>
+    <a href="#" data-tab-link="videos">🎬 Videos</a>
+    <a href="#" data-tab-link="maps">🗺️ Maps</a>
+    <a href="#" data-tab-link="shopping">🛍️ Shopping</a>
+  </div>
+  <p class="muted"><b>🔒 No history, no account.</b> Novara does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web" aria-live="polite"></div>
   <div id="internet"></div>
   <div id="photos" aria-live="polite"></div>
   <div id="videos" aria-live="polite"></div>
   <div id="results" aria-live="polite"></div>
-  <footer class="brand-footer"><p class="muted">🔒 <b>PrivaSearch</b> — your searches stay yours.</p><p class="muted">Banner photo: green mountain valley via Unsplash.</p></footer>
+  <footer class="brand-footer"><p class="muted">🔒 <b>Novara</b> — your searches stay yours.</p><p><a href="#" class="muted">About</a> · <a href="#" class="muted">Privacy</a> · <a href="#" class="muted">Terms</a> · <a href="#" class="muted">Settings</a> · <a href="#" class="muted">Feedback</a> · <select id="lang" aria-label="Language" style="border-radius:999px;padding:4px 8px"><option>English</option><option>हिन्दी</option><option>Español</option></select> <span id="lang-status" class="muted"></span></p><p class="muted">Banner photo: mountain valley via Unsplash.</p></footer>
 </div>
 
 <script>
@@ -355,6 +389,11 @@ function render(query) {
   const resultsEl = document.getElementById("results");
   const copyBtn = document.getElementById("copy-link");
   const copyStatus = document.getElementById("copy-status");
+  // Recent searches, in-memory only for this session — nothing is stored.
+  window.novaraRecent = window.novaraRecent || [];
+  if (query.trim()) {
+    window.novaraRecent = [query.trim(), ...window.novaraRecent.filter(q => q !== query.trim())].slice(0, 5);
+  }
   if (!query.trim()) {
     resultsEl.innerHTML = "";
     copyBtn.hidden = true; copyStatus.textContent = "";
@@ -373,6 +412,7 @@ function render(query) {
   else resultsEl.innerHTML = `<section class="card"><h2>My documents</h2><p class="muted">${results.length} result(s), ranked by TF-IDF.</p>` +
     results.map(r => `<div class="result"><b>${esc(r.title)}</b> <span class="score">score ${r.score} · ${esc(r.path)}</span><div>${highlight(r.snippet, r.terms)}</div></div>`).join("") + `</section>`;
   webSearch(query);
+  applyTab();
 }
 
 // Search suggestions: as you type, Wikipedia's free opensearch API
@@ -420,6 +460,7 @@ document.getElementById("search-form").addEventListener("submit", e => { e.preve
 // so those are cleared explicitly here.
 document.getElementById("clear-btn").addEventListener("click", () => {
   hideSuggestions();
+  window.novaraRecent = [];
   document.getElementById("q").value = "";
   ["web", "internet", "photos", "videos", "results"].forEach(id => { document.getElementById(id).innerHTML = ""; });
   document.getElementById("copy-link").hidden = true;
@@ -441,6 +482,69 @@ document.addEventListener("keydown", e => {
   }
 });
 
+// Novara tabs: filter which in-page sections are shown. Maps,
+// Shopping and Books have no free in-page index here, so they link
+// out to the same query on a dedicated service instead of faking results.
+let activeTab = "all";
+function applyTab() {
+  const show = { web: true, internet: true, photos: true, videos: true, results: true };
+  if (activeTab === "images") Object.assign(show, { web: false, internet: false, videos: false, results: false });
+  if (activeTab === "videos") Object.assign(show, { web: false, internet: false, photos: false, results: false });
+  if (activeTab === "news") Object.assign(show, { photos: false, videos: false, results: false });
+  ["web", "internet", "photos", "videos", "results"].forEach(id => { document.getElementById(id).style.display = show[id] ? "" : "none"; });
+  const extra = document.getElementById("tab-extra");
+  const q = document.getElementById("q").value.trim();
+  const enc = encodeURIComponent(q);
+  const links = { maps: `https://www.google.com/maps/search/${enc}`, shopping: `https://www.google.com/search?tbm=shop&q=${enc}`, books: `https://www.google.com/search?tbm=bks&q=${enc}` };
+  if (links[activeTab]) {
+    extra.innerHTML = q ? `<section class="card"><h2>${activeTab[0].toUpperCase() + activeTab.slice(1)} for “${esc(q)}”</h2><p class="muted">Novara has no free in-page ${activeTab} index, so the complete results live here:</p><p><a href="${links[activeTab]}" target="_blank" rel="noopener">Open ${activeTab} results for “${esc(q)}” →</a></p></section>` : `<section class="card"><p class="muted">Search first, then this tab links to the ${activeTab} results for your query.</p></section>`;
+  } else { extra.innerHTML = ""; }
+}
+document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+  b.classList.add("active"); activeTab = b.dataset.tab; applyTab();
+}));
+document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelectorAll(".tab-btn").forEach(x => x.classList.toggle("active", x.dataset.tab === a.dataset.tabLink));
+  activeTab = a.dataset.tabLink; applyTab();
+  if (document.getElementById("q").value.trim()) document.getElementById("tab-extra").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+
+// Animated placeholder: cycles example queries while the box is empty.
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache"];
+let novaraPlaceholderIdx = 0;
+setInterval(() => {
+  const input = document.getElementById("q");
+  if (input && !input.value && document.activeElement !== input) {
+    novaraPlaceholderIdx = (novaraPlaceholderIdx + 1) % novaraPlaceholders.length;
+    input.placeholder = novaraPlaceholders[novaraPlaceholderIdx];
+  }
+}, 3000);
+
+// Voice / camera buttons: this private version has no real voice or
+// image recognition, so they say so plainly instead of faking it.
+document.getElementById("voice-btn").addEventListener("click", () => {
+  document.getElementById("copy-status").textContent = "Voice search isn't built into this private version — please type your query.";
+  document.getElementById("q").focus();
+});
+document.getElementById("camera-btn").addEventListener("click", () => {
+  const q = document.getElementById("q").value.trim();
+  if (!q) { document.getElementById("q").focus(); return; }
+  document.querySelectorAll(".tab-btn").forEach(x => x.classList.toggle("active", x.dataset.tab === "images"));
+  activeTab = "images"; applyTab();
+  document.getElementById("photos").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// Recent searches in the dropdown, in-memory only: show them when the
+// empty box is focused, alongside trending topics.
+qInput.addEventListener("focus", () => {
+  if (qInput.value.trim()) return;
+  const recent = window.novaraRecent || [];
+  const trending = ["Best laptops 2026", "Weather in Tokyo", "How to learn Python"];
+  suggItems = [...recent, ...trending]; suggActive = -1; paintSuggestions();
+});
+
 // Theme toggle is in-memory only, on purpose: nothing is written to
 // localStorage, cookies, or any history list, so no search or watch
 // history is ever stored by this page.
@@ -450,6 +554,11 @@ function setTheme(light) {
   themeBtn.textContent = light ? "🌙 Dark mode" : "☀️ Light mode";
 }
 themeBtn.addEventListener("click", () => setTheme(!document.body.classList.contains("light")));
+// Respect the system preference on first load, in-memory only.
+if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) setTheme(true);
+document.getElementById("lang").addEventListener("change", e => {
+  document.getElementById("lang-status").textContent = "Language set for this session only: " + e.target.value + ".";
+});
 
 // Copy search link: copies the current (already shareable) URL, so a
 // pasted link opens this exact search. In-memory only, nothing stored.
