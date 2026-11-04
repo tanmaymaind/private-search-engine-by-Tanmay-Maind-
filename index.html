@@ -96,7 +96,7 @@
     <a href="#" data-q="redis cache">redis cache</a>
     <a href="#" data-q="private search engine">private search engine</a>
   </div>
-  <p class="muted"><b>🔒 No history, no account.</b> PrivaSearch does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
+  <p class="muted"><b>🔒 No history, no account.</b> PrivaSearch does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web" aria-live="polite"></div>
   <div id="internet"></div>
@@ -251,6 +251,24 @@ async function webSearch(query) {
       const block = `<section class="card"><h3>Photos — Internet Archive</h3><div class="grid">` +
         docs2.slice(0,12).map(d => `<a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener"><img src="https://archive.org/services/img/${esc(d.identifier)}" alt="${esc(d.title)}" loading="lazy"><figcaption>${esc(d.title)}</figcaption></a>`).join("") +
         `</div></section>`;
+      photosEl.innerHTML += block;
+    }
+  } catch (e) {}
+
+  // Openverse — a third free photo source: openly licensed photos from
+  // across the web (Flickr and others), via its free no-key API.
+  // Anonymous use is rate-limited, so this is best-effort like the
+  // others: if it fails or is throttled, the photos above still stand.
+  // Mature results are excluded by the API by default.
+  try {
+    const res = await fetch(`https://api.openverse.org/v1/images/?q=${enc}&page_size=12`);
+    const data = await res.json();
+    const items = (data?.results || []).filter(r => r.thumbnail);
+    if (items.length) {
+      photosFound = true;
+      const block = `<section class="card"><h3>Photos — Openverse</h3><div class="grid">` +
+        items.slice(0,12).map(r => `<a href="${esc(r.foreign_landing_url || r.url)}" target="_blank" rel="noopener"><img src="${esc(r.thumbnail)}" alt="${esc(r.title || "Openverse photo")}" loading="lazy"><figcaption>${esc(r.title || "Openverse photo")}${r.license ? ` · ${esc(r.license)}` : ""}</figcaption></a>`).join("") +
+        `</div><p class="muted">Photos: Openverse (openly licensed — check each photo's licence).</p></section>`;
       photosEl.innerHTML += block;
     }
   } catch (e) {}

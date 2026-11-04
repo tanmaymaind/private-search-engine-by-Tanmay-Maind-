@@ -36,7 +36,8 @@ the browser — plus a clean dark UI and, for any query, a “Results from
 the internet” list (up to 12 Wikipedia articles from its free search API, plus
 related pages from DuckDuckGo when it has any), a web card from
 Wikipedia for a person or topic, many photos in-page (up to 24 from
-Wikimedia Commons plus up to 12 from Internet Archive), and
+Wikimedia Commons plus up to 12 from Internet Archive, plus up to 12
+from Openverse's free no-key API), and
 videos played right in the page from many free sites — up to 4 each
 from Wikimedia Commons, Internet Archive, Dailymotion, and PeerTube,
 with video embeds lazy-loaded so a search stays fast, search
