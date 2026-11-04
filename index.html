@@ -7,15 +7,18 @@
 <meta name="description" content="PrivaSearch: a private search engine. No history, no account, no tracking.">
 <style>
   :root { color-scheme: dark; }
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #0b1220; color: #e6edf7; line-height: 1.55; }
-  body.light { background: #f6f7f9; color: #111827; }
+  /* Nature theme: a beautiful green grass and mountain photo as the page
+     background, with a dark overlay so text stays readable. If the photo
+     ever fails to load, the deep green gradient underneath still shows. */
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #e6edf7; line-height: 1.55; background-color: #14532d; background-image: linear-gradient(rgba(6, 40, 22, 0.72), rgba(6, 40, 22, 0.86)), url("https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80"); background-size: cover; background-position: center; background-attachment: fixed; }
+  body.light { background-color: #dcfce7; color: #111827; background-image: linear-gradient(rgba(240, 253, 244, 0.78), rgba(220, 252, 231, 0.88)), url("https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80"); }
   .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 48px; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 14px; }
-  .logo { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: linear-gradient(135deg, #2563eb, #06b6d4); box-shadow: 0 8px 24px rgba(37,99,235,.35); flex-shrink: 0; }
+  .logo { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: linear-gradient(135deg, #16a34a, #84cc16); box-shadow: 0 8px 24px rgba(22,163,74,.4); flex-shrink: 0; }
   h1 { margin: 0; font-size: 38px; letter-spacing: -0.02em; line-height: 1.1; }
-  h1 .accent { color: #38bdf8; }
-  body.light h1 .accent { color: #0284c7; }
+  h1 .accent { color: #4ade80; }
+  body.light h1 .accent { color: #15803d; }
   .brand-footer { text-align: center; margin-top: 32px; }
   .tagline { color: #94a3b8; margin: 4px 0 0; }
   body.light .tagline { color: #64748b; }
@@ -25,7 +28,7 @@
   form { display: flex; gap: 10px; margin: 22px 0 12px; }
   input[type="search"] { flex: 1; padding: 14px 16px; font-size: 17px; border-radius: 14px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; }
   body.light input[type="search"] { background: #fff; color: #111827; border-color: #d1d5db; }
-  input[type="search"]:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.25); }
+  input[type="search"]:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.25); }
   .search-wrap { flex: 1; position: relative; min-width: 0; }
   .search-wrap input[type="search"] { width: 100%; box-sizing: border-box; }
   .suggestions { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #111c33; border: 1px solid #334155; border-radius: 14px; overflow: hidden; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
@@ -34,14 +37,14 @@
   .suggestions button { display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 10px 16px; cursor: pointer; }
   .suggestions button:hover, .suggestions button.active { background: #1e293b; }
   body.light .suggestions button:hover, body.light .suggestions button.active { background: #eef2f7; }
-  .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(37,99,235,.3); }
+  .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: linear-gradient(135deg, #16a34a, #65a30d); color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(22,163,74,.35); }
   .clear-btn { padding: 14px 16px; font-size: 16px; border: 1px solid #334155; border-radius: 14px; background: #1e293b; color: #e6edf7; cursor: pointer; }
   body.light .clear-btn { background: #fff; color: #111827; border-color: #d1d5db; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-  .chips a { color: #93c5fd; text-decoration: none; border: 1px solid #334155; border-radius: 999px; padding: 5px 12px; font-size: 14px; }
-  body.light .chips a { color: #1d4ed8; border-color: #d1d5db; }
-  .card { background: #111c33; border: 1px solid #1e293b; border-radius: 18px; padding: 18px; margin: 16px 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-  body.light .card { background: #fff; border-color: #e5e7eb; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+  .chips a { color: #86efac; text-decoration: none; border: 1px solid #334155; border-radius: 999px; padding: 5px 12px; font-size: 14px; background: rgba(6, 40, 22, 0.55); }
+  body.light .chips a { color: #15803d; border-color: #d1d5db; background: rgba(255,255,255,0.7); }
+  .card { background: rgba(11, 28, 51, 0.86); border: 1px solid #1e293b; border-radius: 18px; padding: 18px; margin: 16px 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  body.light .card { background: rgba(255,255,255,0.88); border-color: #e5e7eb; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
   .card h2 { margin: 0 0 8px; font-size: 20px; }
   .card h3 { margin: 0 0 10px; font-size: 17px; }
   .muted { color: #94a3b8; font-size: 14px; }
@@ -58,8 +61,8 @@
   body.light .video-source h4 { color: #334155; }
   .grid a { color: inherit; text-decoration: none; }
   .grid figcaption { font-size: 13px; color: #94a3b8; margin-top: 6px; }
-  a { color: #93c5fd; }
-  body.light a { color: #1d4ed8; }
+  a { color: #86efac; }
+  body.light a { color: #15803d; }
   .result { margin: 16px 0; }
   .result mark { background: #facc15; color: #111827; border-radius: 3px; padding: 0 2px; }
   .score { color: #94a3b8; font-size: 13px; }
@@ -103,7 +106,7 @@
   <div id="photos" aria-live="polite"></div>
   <div id="videos" aria-live="polite"></div>
   <div id="results" aria-live="polite"></div>
-  <footer class="brand-footer"><p class="muted">🔒 <b>PrivaSearch</b> — your searches stay yours.</p></footer>
+  <footer class="brand-footer"><p class="muted">🔒 <b>PrivaSearch</b> — your searches stay yours.</p><p class="muted">Background: green mountain valley photo via Unsplash.</p></footer>
 </div>
 
 <script>
