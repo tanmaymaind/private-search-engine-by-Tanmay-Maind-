@@ -28,8 +28,13 @@
   .tagline { color: #94a3b8; margin: 4px 0 0; }
   body.light .tagline { color: #64748b; }
   button, input { font: inherit; }
-  .theme-btn { background: #1e293b; color: #e6edf7; border: 1px solid #334155; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
-  body.light .theme-btn { background: #fff; color: #111827; border-color: #d1d5db; }
+  /* Bubble jelly buttons: fully round, transparent and glossy, with a
+     soft inner highlight and a little squish when pressed. */
+  .theme-btn, .search-btn, .clear-btn { border-radius: 999px; backdrop-filter: blur(10px) saturate(140%); -webkit-backdrop-filter: blur(10px) saturate(140%); transition: transform 0.12s ease, filter 0.12s ease; }
+  .theme-btn:hover, .search-btn:hover, .clear-btn:hover { filter: brightness(1.1); }
+  .theme-btn:active, .search-btn:active, .clear-btn:active { transform: scale(0.96); }
+  .theme-btn { background: rgba(255,255,255,0.14); color: #e6edf7; border: 1px solid rgba(255,255,255,0.35); padding: 8px 14px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -4px 8px rgba(0,0,0,0.15), 0 6px 18px rgba(0,0,0,0.25); }
+  body.light .theme-btn { background: rgba(255,255,255,0.65); color: #111827; border-color: rgba(255,255,255,0.85); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 18px rgba(0,0,0,0.12); }
   form { display: flex; gap: 10px; margin: 22px 0 12px; }
   input[type="search"] { flex: 1; padding: 14px 16px; font-size: 17px; border-radius: 14px; border: 1px solid #334155; background: #111c33; color: #e6edf7; outline: none; }
   body.light input[type="search"] { background: #fff; color: #111827; border-color: #d1d5db; }
@@ -42,12 +47,12 @@
   .suggestions button { display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 10px 16px; cursor: pointer; }
   .suggestions button:hover, .suggestions button.active { background: #1e293b; }
   body.light .suggestions button:hover, body.light .suggestions button.active { background: #eef2f7; }
-  .search-btn { padding: 14px 20px; font-size: 16px; font-weight: 600; border: 0; border-radius: 14px; background: linear-gradient(135deg, #16a34a, #65a30d); color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(22,163,74,.35); }
-  .clear-btn { padding: 14px 16px; font-size: 16px; border: 1px solid #334155; border-radius: 14px; background: #1e293b; color: #e6edf7; cursor: pointer; }
-  body.light .clear-btn { background: #fff; color: #111827; border-color: #d1d5db; }
+  .search-btn { padding: 14px 22px; font-size: 16px; font-weight: 600; border: 1px solid rgba(255,255,255,0.4); background: linear-gradient(135deg, rgba(22,163,74,0.85), rgba(101,163,13,0.85)); color: #fff; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -6px 12px rgba(0,0,0,0.15), 0 8px 20px rgba(22,163,74,0.35); }
+  .clear-btn { padding: 14px 18px; font-size: 16px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.14); color: #e6edf7; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -4px 8px rgba(0,0,0,0.15), 0 6px 18px rgba(0,0,0,0.25); }
+  body.light .clear-btn { background: rgba(255,255,255,0.65); color: #111827; border-color: rgba(255,255,255,0.85); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 18px rgba(0,0,0,0.12); }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-  .chips a { color: #86efac; text-decoration: none; border: 1px solid #334155; border-radius: 999px; padding: 5px 12px; font-size: 14px; background: rgba(6, 40, 22, 0.55); }
-  body.light .chips a { color: #15803d; border-color: #d1d5db; background: rgba(255,255,255,0.7); }
+  .chips a { color: #86efac; text-decoration: none; border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; padding: 5px 12px; font-size: 14px; background: rgba(6, 40, 22, 0.45); backdrop-filter: blur(10px) saturate(140%); -webkit-backdrop-filter: blur(10px) saturate(140%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(0,0,0,0.2); }
+  body.light .chips a { color: #15803d; border-color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.6); }
   .card { background: #111c33; border: 1px solid #1e293b; border-radius: 18px; padding: 18px; margin: 16px 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
   body.light .card { background: #fff; border-color: #e5e7eb; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
   .card h2 { margin: 0 0 8px; font-size: 20px; }
