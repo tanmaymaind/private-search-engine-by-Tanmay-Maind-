@@ -172,6 +172,18 @@
       <p class="muted" id="adv-web-link"></p>
     </form>
   </section>
+  <section id="settings" class="card" hidden aria-label="Settings">
+    <h2>Settings</h2>
+    <p class="muted">These apply for this session only — nothing is stored, and reloading the page resets them to the defaults below.</p>
+    <div class="adv-field"><label><input id="set-theme" type="checkbox"> Light theme</label></div>
+    <div class="adv-field"><label><input id="set-photos" type="checkbox" checked> Show photos in results (turning this off also skips the photo fetches, so searches stay fast)</label></div>
+    <div class="adv-field"><label><input id="set-videos" type="checkbox" checked> Show videos in results (turning this off also skips the video fetches)</label></div>
+    <p class="muted" id="settings-status"></p>
+    <div class="adv-actions">
+      <button class="clear-btn" id="settings-back" type="button">← Back to search</button>
+      <button class="clear-btn" id="settings-reset" type="button">Reset to defaults</button>
+    </div>
+  </section>
   <p class="muted"><b>🔒 No history, no account.</b> Novara does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div id="web" aria-live="polite"></div>
@@ -179,7 +191,7 @@
   <div id="photos" aria-live="polite"></div>
   <div id="videos" aria-live="polite"></div>
   <div id="results" aria-live="polite"></div>
-  <footer class="brand-footer"><p class="muted">🔒 <b>Novara</b> — your searches stay yours.</p><p><a href="#" class="muted">About</a> · <a href="#" class="muted">Privacy</a> · <a href="#" class="muted">Terms</a> · <a href="#" class="muted">Settings</a> · <a href="#" id="advanced-link-footer" class="muted">Advanced Search</a> · <a href="#" class="muted">Feedback</a> · <select id="lang" aria-label="Language" style="border-radius:999px;padding:4px 8px"><option>English</option><option>हिन्दी</option><option>Español</option></select> <span id="lang-status" class="muted"></span></p><p class="muted">Banner photo: mountain valley via Unsplash.</p></footer>
+  <footer class="brand-footer"><p class="muted">🔒 <b>Novara</b> — your searches stay yours.</p><p><a href="#" class="muted">About</a> · <a href="#" class="muted">Privacy</a> · <a href="#" class="muted">Terms</a> · <a href="#" id="settings-link" class="muted">Settings</a> · <a href="#" id="advanced-link-footer" class="muted">Advanced Search</a> · <a href="#" class="muted">Feedback</a> · <select id="lang" aria-label="Language" style="border-radius:999px;padding:4px 8px"><option>English</option><option>हिन्दी</option><option>Español</option></select> <span id="lang-status" class="muted"></span></p><p class="muted">Banner photo: mountain valley via Unsplash.</p></footer>
 </div>
 
 <script>
@@ -300,6 +312,11 @@ async function webSearch(query) {
     internetEl.innerHTML = internetHtml;
   }
 
+  // Settings: if photos are off, skip every photo fetch below, so a
+  // text-only search stays fast — the note replaces the loading line.
+  if (window.novaraSettings && !window.novaraSettings.photos) {
+    photosEl.innerHTML = `<p class="muted">Photos are turned off in Settings — turn them back on there to see them.</p>`;
+  } else {
   // Photos load from two independent sources; track whether either found
   // anything, so an empty result says so instead of leaving the loading
   // note (or silence) in place.
@@ -356,6 +373,11 @@ async function webSearch(query) {
   if (!photosFound) photosEl.innerHTML = `<p class="muted">No in-page photos were found for this query — the links below open the complete photo results.</p>`;
   photosEl.innerHTML += `<section class="card"><h3>See all photos for “${esc(query)}”</h3><p><a href="https://www.google.com/search?tbm=isch&q=${enc}" target="_blank" rel="noopener">Google Images</a> · <a href="https://www.bing.com/images/search?q=${enc}" target="_blank" rel="noopener">Bing Images</a> · <a href="https://duckduckgo.com/?q=${enc}&iax=images&ia=images" target="_blank" rel="noopener">DuckDuckGo Images</a> · <a href="https://search.brave.com/images?q=${enc}" target="_blank" rel="noopener">Brave Images</a> · <a href="https://yandex.com/images/search?text=${enc}" target="_blank" rel="noopener">Yandex Images</a> · <a href="https://commons.wikimedia.org/w/index.php?search=${enc}&title=Special:MediaSearch&type=image" target="_blank" rel="noopener">All Commons photos</a> · <a href="https://openverse.org/search/image?q=${enc}" target="_blank" rel="noopener">Openverse</a> · <a href="https://www.pexels.com/search/${enc}/" target="_blank" rel="noopener">Pexels</a> · <a href="https://pixabay.com/images/search/${enc}/" target="_blank" rel="noopener">Pixabay</a></p><p class="muted">No free site can copy Google's whole photo index in-page — Google, Bing and the others above crawl billions of pages. The in-page photos above are every free result we can fetch without a paid key; the links here open the complete result set for the same query.</p></section>`;
 
+  }
+  // Settings: same skip for videos as for photos above.
+  if (window.novaraSettings && !window.novaraSettings.videos) {
+    videosEl.innerHTML = `<p class="muted">Videos are turned off in Settings — turn them back on there to see them.</p>`;
+  } else {
   // Videos from ANY free video site, played right here in the page — not only YouTube.
   // Each source is fetched independently, so one failing site never breaks the others.
   let videoHtml = `<section class="card"><h3>Videos — all free sources, in-page</h3><p class="muted">Tap play on any player below. Up to 4 players from each free site, so up to 16 in-page videos — not just 2 per site. Nothing you play is recorded by this page.</p>`;
@@ -411,6 +433,7 @@ async function webSearch(query) {
   if (!videoFound) videoHtml += `<p class="muted">No in-page videos were found for this query — try the see-all links below for the complete video results.</p>`;
   videoHtml += `<h3 style="margin-top:18px">See all videos for “${esc(query)}”</h3><p><a href="https://www.youtube.com/results?search_query=${enc}" target="_blank" rel="noopener">YouTube</a> · <a href="https://vimeo.com/search?q=${enc}" target="_blank" rel="noopener">Vimeo</a> · <a href="https://www.google.com/search?tbm=vid&q=${enc}" target="_blank" rel="noopener">Google Videos</a> · <a href="https://www.bing.com/videos/search?q=${enc}" target="_blank" rel="noopener">Bing Videos</a> · <a href="https://duckduckgo.com/?q=${enc}&iax=videos&ia=videos" target="_blank" rel="noopener">DuckDuckGo Videos</a> · <a href="https://search.brave.com/videos?q=${enc}" target="_blank" rel="noopener">Brave Videos</a> · <a href="https://archive.org/search?query=${enc}" target="_blank" rel="noopener">Archive.org</a> · <a href="https://www.dailymotion.com/search/${enc}" target="_blank" rel="noopener">Dailymotion</a> · <a href="https://search.joinpeertube.org/search?search=${enc}" target="_blank" rel="noopener">PeerTube</a></p><p class="muted">YouTube and Vimeo need a paid key to show their videos in-page, so they are one-tap links above — those pages hold their complete video results for this query.</p></section>`;
   videosEl.innerHTML = videoHtml;
+  }
 }
 
 function render(query) {
@@ -511,6 +534,11 @@ document.addEventListener("keydown", e => {
   }
 });
 
+// Settings, in-memory only like the theme: nothing is written to
+// storage, so reloading the page resets them. Photos/videos off also
+// skips those fetches in webSearch (see below), not just hides them.
+window.novaraSettings = { photos: true, videos: true };
+
 // Novara tabs: filter which in-page sections are shown. Maps,
 // Shopping and Books have no free in-page index here, so they link
 // out to the same query on a dedicated service instead of faking results.
@@ -520,6 +548,9 @@ function applyTab() {
   if (activeTab === "images") Object.assign(show, { web: false, internet: false, videos: false, results: false });
   if (activeTab === "videos") Object.assign(show, { web: false, internet: false, photos: false, results: false });
   if (activeTab === "news") Object.assign(show, { photos: false, videos: false, results: false });
+  // Settings hide already-loaded sections too, without a new search.
+  if (window.novaraSettings && !window.novaraSettings.photos) show.photos = false;
+  if (window.novaraSettings && !window.novaraSettings.videos) show.videos = false;
   ["web", "internet", "photos", "videos", "results"].forEach(id => { document.getElementById(id).style.display = show[id] ? "" : "none"; });
   const extra = document.getElementById("tab-extra");
   const q = document.getElementById("q").value.trim();
@@ -587,6 +618,41 @@ themeBtn.addEventListener("click", () => setTheme(!document.body.classList.conta
 if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) setTheme(true);
 document.getElementById("lang").addEventListener("change", e => {
   document.getElementById("lang-status").textContent = "Language set for this session only: " + e.target.value + ".";
+});
+
+// Settings panel: the footer Settings link used to go nowhere, so it
+// now opens a real panel. Every control is in-memory only — nothing is
+// stored, and reloading resets it. Toggling photos/videos re-applies the
+// tab filter at once; the next search skips those fetches entirely.
+// Match the checkbox to the theme already applied on load (system preference).
+document.getElementById("set-theme").checked = document.body.classList.contains("light");
+document.getElementById("settings-link").addEventListener("click", e => {
+  e.preventDefault();
+  document.getElementById("settings").hidden = false;
+  document.getElementById("settings").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("settings-back").addEventListener("click", () => {
+  document.getElementById("settings").hidden = true;
+});
+document.getElementById("set-photos").addEventListener("change", e => {
+  window.novaraSettings.photos = e.target.checked; applyTab();
+});
+document.getElementById("set-videos").addEventListener("change", e => {
+  window.novaraSettings.videos = e.target.checked; applyTab();
+});
+document.getElementById("set-theme").addEventListener("change", e => setTheme(e.target.checked));
+// Keep the Settings theme checkbox in step with the header theme button.
+themeBtn.addEventListener("click", () => {
+  document.getElementById("set-theme").checked = document.body.classList.contains("light");
+});
+document.getElementById("settings-reset").addEventListener("click", () => {
+  window.novaraSettings.photos = true; window.novaraSettings.videos = true;
+  document.getElementById("set-photos").checked = true;
+  document.getElementById("set-videos").checked = true;
+  const light = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
+  setTheme(light); document.getElementById("set-theme").checked = light;
+  applyTab();
+  document.getElementById("settings-status").textContent = "Settings reset to defaults for this session.";
 });
 
 // Advanced Search: build one query from the separate fields and run it
