@@ -267,7 +267,7 @@
     <button class="tab-btn" type="button" data-tab="books">Books</button>
   </nav>
   <div id="tab-extra"></div>
-  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. Start typing and suggestions appear below the box — use ↑ ↓ and Enter to pick one. The address bar updates to a shareable link for your search — copy it to send someone the same results. <b>Clear</b> wipes the box, the results, and the shareable link in one tap, so the next search starts clean.</p>
+  <p class="muted" style="margin-top:-6px">Tip: press <b>/</b> anywhere to jump back to the search box. Start typing and suggestions appear below the box — use ↑ ↓ and Enter to pick one. Tap 🎤 to search by voice (your browser's speech recognition; nothing is stored). The address bar updates to a shareable link for your search — copy it to send someone the same results. <b>Clear</b> wipes the box, the results, and the shareable link in one tap, so the next search starts clean.</p>
   <p style="margin-top:-6px"><button class="theme-btn" id="copy-link" type="button" hidden>🔗 Copy search link</button> <span id="copy-status" class="muted"></span></p>
 
   <div class="chips">
@@ -320,7 +320,7 @@
       <button class="clear-btn" id="settings-reset" type="button">Reset to defaults</button>
     </div>
   </section>
-  <p class="muted"><b>🔒 No history, no account.</b> Novara does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
+  <p class="muted"><b>🔒 No history, no account.</b> Novara does not store your searches or what you watch — no search history, no watch history, no cookies, no saved list, nothing is written to storage by this page. Local documents are searched privately in your browser. Voice search, when you tap the microphone, uses your browser's built-in speech recognition to turn your words into a search — the audio is handled by your browser, and Novara stores nothing from it. Photos and videos below now show many more results in-page from every free source that allows it (Wikimedia Commons, Internet Archive, Openverse, Dailymotion, PeerTube), plus one-tap “see all” links to Google, Bing, DuckDuckGo, Brave, Yahoo, Yandex and more — because no free site can hold Google's whole index, the full “all results” pages live on those search engines, and this page links you straight to them for the same query. Note: when you play a video, that video site itself will see that play, just like visiting it directly; this page does not record it.</p>
 
   <div class="results-layout">
   <main id="results-main">
@@ -891,11 +891,70 @@ setInterval(() => {
   }
 }, 3000);
 
-// Voice / camera buttons: this private version has no real voice or
-// image recognition, so they say so plainly instead of faking it.
-document.getElementById("voice-btn").addEventListener("click", () => {
-  document.getElementById("copy-status").textContent = "Voice search isn't built into this private version — please type your query.";
-  document.getElementById("q").focus();
+// Voice search: real, in-browser speech recognition — no key, no
+// server, nothing stored. The Web Speech API runs in the browser (the
+// audio is handled by the browser's speech service when you tap the
+// microphone); Novara itself records nothing. The spoken words go into
+// the search box and run as a normal search. If the browser has no
+// speech recognition, the button says so plainly instead of faking it.
+const voiceBtn = document.getElementById("voice-btn");
+let voiceRec = null, voiceListening = false;
+function voiceLang() {
+  const lang = (window.novaraFilters && window.novaraFilters.language) || "en";
+  return { en: "en-US", hi: "hi-IN", es: "es-ES", fr: "fr-FR" }[lang] || "en-US";
+}
+function setVoiceUI(listening) {
+  voiceListening = listening;
+  voiceBtn.textContent = listening ? "🔴" : "🎤";
+  voiceBtn.setAttribute("aria-label", listening ? "Stop listening" : "Voice search");
+  voiceBtn.title = listening ? "Listening… tap to stop" : "Voice search";
+}
+voiceBtn.addEventListener("click", () => {
+  const statusEl = document.getElementById("copy-status");
+  if (voiceListening && voiceRec) { try { voiceRec.stop(); } catch (e) {} return; }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    statusEl.textContent = "Voice search isn't available in this browser — please type your query.";
+    document.getElementById("q").focus();
+    return;
+  }
+  try {
+    voiceRec = new SpeechRecognition();
+  } catch (e) {
+    statusEl.textContent = "Voice search couldn't start in this browser — please type your query.";
+    return;
+  }
+  voiceRec.lang = voiceLang();
+  voiceRec.interimResults = true;
+  voiceRec.maxAlternatives = 1;
+  voiceRec.onresult = (event) => {
+    let interim = "", finalText = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
+      else interim += event.results[i][0].transcript;
+    }
+    const heard = (finalText || interim).trim();
+    if (heard) document.getElementById("q").value = heard;
+    if (finalText.trim()) {
+      hideSuggestions();
+      render(finalText.trim());
+    }
+  };
+  voiceRec.onerror = (event) => {
+    setVoiceUI(false);
+    if (event.error === "not-allowed" || event.error === "service-not-allowed") statusEl.textContent = "Microphone access was denied — type your query instead.";
+    else if (event.error === "no-speech") statusEl.textContent = "Didn't catch that — try again, or type your query.";
+    else statusEl.textContent = "Voice search didn't work this time — please type your query.";
+  };
+  voiceRec.onend = () => setVoiceUI(false);
+  try {
+    voiceRec.start();
+    setVoiceUI(true);
+    statusEl.textContent = "Listening… speak your search, then tap the microphone to stop.";
+  } catch (e) {
+    setVoiceUI(false);
+    statusEl.textContent = "Voice search couldn't start — please type your query.";
+  }
 });
 document.getElementById("camera-btn").addEventListener("click", () => {
   const q = document.getElementById("q").value.trim();
