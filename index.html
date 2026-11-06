@@ -432,10 +432,10 @@ function toast(msg) {
 }
 function updateStats(query) {
   const el = document.getElementById("stats"); if (!el) return;
-  const local = window.novaraLocalCount || 0, wiki = (window.novaraWikiResults || []).length;
+  const local = window.novaraLocalCount || 0, wiki = (window.novaraWikiResults || []).length, extra = window.novaraWebExtraCount || 0;
   const secs = window.novaraSearchStart ? ((performance.now() - window.novaraSearchStart) / 1000).toFixed(2) : "?";
   const sortNote = (window.novaraFilters && window.novaraFilters.sort === "date") ? " Local documents have no dates, so they stay in relevance order." : "";
-  el.innerHTML = `<p class="muted">About <b>${local + wiki} in-page results</b> (${local} local documents, ${wiki} web articles) in ${secs} seconds for “${esc(query)}”.${sortNote} This is a real count of results found in-page, not a whole-web estimate.</p>`;
+  el.innerHTML = `<p class="muted">About <b>${local + wiki + extra} in-page results</b> (${local} local documents, ${wiki} Wikipedia articles, ${extra} from other sites) in ${secs} seconds for “${esc(query)}”.${sortNote} This is a real count of results found in-page, not a whole-web estimate.</p>`;
 }
 function renderAI(sum, link) {
   const el = document.getElementById("ai"); if (!el || !sum || !sum.extract) return;
@@ -476,7 +476,7 @@ function renderTopStories(query) {
 }
 async function renderEmptyCheck(query) {
   const el = document.getElementById("empty"); if (!el) return;
-  const local = window.novaraLocalCount || 0, wiki = (window.novaraWikiResults || []).length;
+  const local = window.novaraLocalCount || 0, wiki = (window.novaraWikiResults || []).length + (window.novaraWebExtraCount || 0);
   if (local || wiki) { el.innerHTML = ""; return; }
   let sugg = "";
   try {
@@ -484,7 +484,7 @@ async function renderEmptyCheck(query) {
     const data = await res.json(); const titles = (data && data[1]) || [];
     if (titles.length) sugg = `<p>Did you mean: ` + titles.map(t => `<a href="#" data-q="${esc(t)}">${esc(t)}</a>`).join(" · ") + `</p>`;
   } catch (e) {}
-  el.innerHTML = `<section class="card"><h2>No results found</h2><p class="muted">Nothing in your documents or on Wikipedia matched “${esc(query)}” in-page. Try a shorter query, check the spelling, or use the whole-web links above.</p>${sugg}</section>`;
+  el.innerHTML = `<section class="card"><h2>No results found</h2><p class="muted">Nothing in your documents or on the web matched “${esc(query)}” in-page. Try a shorter query, check the spelling, or use the whole-web links above.</p>${sugg}</section>`;
   el.querySelectorAll("[data-q]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); document.getElementById("q").value = a.dataset.q; render(a.dataset.q); }));
 }
 function enhanceResultMenus() {
@@ -539,19 +539,21 @@ async function webSearch(query) {
   const internetEl = document.getElementById("internet");
   const photosEl = document.getElementById("photos");
   const videosEl = document.getElementById("videos");
-  window.novaraSummary = null; window.novaraWikiResults = [];
+  window.novaraSummary = null; window.novaraWikiResults = []; window.novaraWebExtraCount = 0;
   document.getElementById("ai").innerHTML = `<section class="card ai-card"><h2>✨ AI Answer</h2><div class="skeleton"></div><div class="skeleton tall"></div></section>`;
   document.getElementById("stats").innerHTML = ""; document.getElementById("paa").innerHTML = ""; document.getElementById("related").innerHTML = ""; document.getElementById("topstories").innerHTML = ""; document.getElementById("empty").innerHTML = ""; document.getElementById("knowledge").innerHTML = "";
   webEl.innerHTML = `<div class="skeleton tall"></div><div class="skeleton"></div>`; internetEl.innerHTML = ""; photosEl.innerHTML = `<div class="skeleton tall"></div>`; videosEl.innerHTML = `<div class="skeleton tall"></div>`;
   const enc = encodeURIComponent(query);
   const stripTags = s => String(s || "").replace(/<[^>]+>/g, "");
-  // Results from the internet: a list of web articles for ANY query, not
-  // just a single person card and not just the local documents. Wikipedia's
-  // free search API gives the in-page list; DuckDuckGo's free instant-answer
-  // API adds related external pages when it has any (it is often empty, so
-  // it is best-effort only). Google/Bing results need a paid API key, which
-  // this free static site does not use — so the full-web links below always
-  // open the same query on Google, Bing, DuckDuckGo and Brave in one tap.
+  // Results from the internet: a list of web results for ANY query, not
+  // just a single person card and not just the local documents, and not
+  // just Wikipedia. Wikipedia's free search API gives the in-page list;
+  // DuckDuckGo's free instant-answer API adds related external pages when
+  // it has any (it is often empty, so it is best-effort only); then four
+  // more free, no-key sources add books, code, discussions and Q&A below.
+  // Google/Bing results need a paid API key, which this free static site
+  // does not use — so the full-web links below always open the same query
+  // on Google, Bing, DuckDuckGo and Brave in one tap.
   let internetHtml = "";
   try {
     const searchRes = await fetch(`https://${wikiHost()}/w/api.php?action=query&list=search&srsearch=${enc}&srlimit=12&format=json&origin=*`);
@@ -593,6 +595,76 @@ async function webSearch(query) {
         `</section>`;
     }
   } catch (e) {}
+
+  // More websites, not just Wikipedia — four more free, no-key sources,
+  // each fetched independently and best-effort (a failure is silent, the
+  // other sections still show). All four send CORS headers, so a browser
+  // page can fetch them directly. Checked 2026-11-06 with curl:
+  // Archive texts, GitHub and Hacker News returned real results for
+  // "Albert Einstein" and "redis cache"; Stack Exchange is rate-limited
+  // per IP, so it often works in a browser and silently skips when it
+  // doesn't. Open Library was checked too but sends no CORS header, so a
+  // browser page cannot fetch it — it is deliberately not used here.
+  // A small helper appends a subsection to the same "Results from the
+  // internet" card, opening the card first if Wikipedia found nothing.
+  const appendWeb = (heading, body) => {
+    if (!internetHtml) internetHtml = `<section class="card"><h2>Results from the internet</h2>`;
+    else internetHtml = internetHtml.replace(/<\/section>$/, "");
+    internetHtml += `<h3 style="margin-top:16px">${heading}</h3>` + body + `</section>`;
+  };
+  let webExtraCount = 0;
+  // 1. Books & documents — Internet Archive texts.
+  try {
+    const aq = encodeURIComponent(`(${query}) AND mediatype:(texts)`);
+    const res = await fetch(`https://archive.org/advancedsearch.php?q=${aq}&fl[]=identifier&fl[]=title&fl[]=description&rows=4&output=json`);
+    const data = await res.json();
+    const docs = (data?.response?.docs || []).filter(d => d.identifier && d.title).slice(0, 4);
+    if (docs.length) {
+      webExtraCount += docs.length;
+      appendWeb("Books & documents — Internet Archive", docs.map(d => {
+        const t = Array.isArray(d.title) ? d.title[0] : d.title;
+        const desc = Array.isArray(d.description) ? d.description[0] : (d.description || "");
+        return `<div class="result"><a href="https://archive.org/details/${esc(d.identifier)}" target="_blank" rel="noopener"><b>${esc(t)}</b></a><div class="muted">${esc(String(desc).slice(0, 140))}${String(desc).length > 140 ? "…" : ""} · archive.org</div></div>`;
+      }).join(""));
+    }
+  } catch (e) {}
+  // 2. Code — GitHub repositories (unauthenticated, so rate-limited: silent skip on 403/429).
+  try {
+    const res = await fetch(`https://api.github.com/search/repositories?q=${enc}&per_page=4`);
+    if (!res.ok) throw new Error("github " + res.status);
+    const data = await res.json();
+    const items = (data?.items || []).slice(0, 4);
+    if (items.length) {
+      webExtraCount += items.length;
+      appendWeb("Code — GitHub", items.map(r => `<div class="result"><a href="${esc(r.html_url)}" target="_blank" rel="noopener"><b>${esc(r.full_name)}</b></a><div class="muted">${esc(r.description || "")} · ★ ${r.stargazers_count} · GitHub</div></div>`).join(""));
+    }
+  } catch (e) {}
+  // 3. Discussions — Hacker News stories.
+  try {
+    const res = await fetch(`https://hn.algolia.com/api/v1/search?query=${enc}&hitsPerPage=4`);
+    const data = await res.json();
+    const hits = (data?.hits || []).filter(h => h.title).slice(0, 4);
+    if (hits.length) {
+      webExtraCount += hits.length;
+      appendWeb("Discussions — Hacker News", hits.map(h => {
+        const url = h.url || `https://news.ycombinator.com/item?id=${h.objectID}`;
+        return `<div class="result"><a href="${esc(url)}" target="_blank" rel="noopener"><b>${esc(h.title)}</b></a><div class="muted">${h.points != null ? h.points + " points" : ""}${h.num_comments != null ? ` · ${h.num_comments} comments` : ""} · Hacker News</div></div>`;
+      }).join(""));
+    }
+  } catch (e) {}
+  // 4. Q&A — Stack Overflow questions (rate-limited per IP: silent skip when throttled).
+  try {
+    const res = await fetch(`https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${enc}&site=stackoverflow&pagesize=4`);
+    if (!res.ok) throw new Error("stackexchange " + res.status);
+    const data = await res.json();
+    const decodeEnt = s => String(s || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+    const items = (data?.items || []).slice(0, 4);
+    if (items.length) {
+      webExtraCount += items.length;
+      appendWeb("Q&A — Stack Overflow", items.map(q => `<div class="result"><a href="${esc(q.link)}" target="_blank" rel="noopener"><b>${esc(decodeEnt(q.title))}</b></a><div class="muted">${q.answer_count} answer${q.answer_count === 1 ? "" : "s"} · score ${q.score} · Stack Overflow</div></div>`).join(""));
+    }
+  } catch (e) {}
+  window.novaraWebExtraCount = webExtraCount;
 
   // Full-web search, always available in one tap — no key needed to link out.
   {
