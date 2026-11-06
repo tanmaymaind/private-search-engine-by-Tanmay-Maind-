@@ -131,6 +131,11 @@
   .trend-card:hover { transform: translateY(-3px); }
   .trend-card img { width: 100%; height: 100px; object-fit: cover; display: block; }
   .trend-card span { display: block; padding: 10px 12px; font-weight: 600; font-size: 14px; }
+  .news-card { min-width: 240px; max-width: 240px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; cursor: pointer; background: var(--surface-solid); transition: transform .15s ease; text-align: left; color: inherit; padding: 0; font: inherit; flex-shrink: 0; }
+  .news-card:hover { transform: translateY(-3px); }
+  .news-card img { width: 100%; height: 120px; object-fit: cover; display: block; }
+  .news-card .news-title { display: block; padding: 10px 12px 2px; font-weight: 600; font-size: 14px; }
+  .news-card .news-meta { display: block; padding: 0 12px 10px; font-size: 12px; color: var(--muted); }
   .ai-card { border: 2px solid transparent; background: linear-gradient(var(--surface-solid), var(--surface-solid)) padding-box, var(--accent) border-box; }
   .ai-card .cite { font-size: 12px; vertical-align: super; }
   .skeleton { height: 18px; border-radius: 8px; margin: 10px 0; background: linear-gradient(90deg, rgba(148,163,184,.18) 25%, rgba(148,163,184,.38) 50%, rgba(148,163,184,.18) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite linear; }
@@ -284,6 +289,13 @@
     <div id="trending-cards" class="trending-row"><p class="muted">Loading trending topics…</p></div>
     <p class="muted">Tap a topic to search it. Thumbnails are real Wikimedia Commons photos for that topic, when one exists.</p>
   </section>
+  <section id="latest-news" class="card" aria-label="Latest News">
+    <h2>📰 Latest News</h2>
+    <div id="news-cards" class="trending-row"><p class="muted">Loading latest news…</p></div>
+    <p class="muted">Tap a story to read more in Novara, with source links. Live headlines, photos and summaries from the BBC News feed (free, via rss2json) — the full article opens on the publisher's site.</p>
+    <p><b>See all news:</b> <a href="https://news.google.com/" target="_blank" rel="noopener">Google News</a> · <a href="https://www.bbc.com/news" target="_blank" rel="noopener">BBC News</a> · <a href="https://www.ndtv.com/" target="_blank" rel="noopener">NDTV</a> · <a href="https://www.thehindu.com/" target="_blank" rel="noopener">The Hindu</a></p>
+  </section>
+  <section id="news-detail" class="card" hidden aria-label="News detail"></section>
   <section id="advanced" class="card" hidden aria-label="Advanced Search">
     <h2>Advanced Search</h2>
     <p class="muted">Fill in what you need — Novara builds one search from all of it and runs it here, in your documents and on the web. Nothing here is stored.</p>
@@ -805,7 +817,7 @@ async function webSearch(query) {
 }
 
 function render(query) {
-  document.body.classList.add("has-results"); window.novaraSearchStart = performance.now(); const trEl = document.getElementById("trending"); if (trEl) trEl.hidden = true;
+  document.body.classList.add("has-results"); window.novaraSearchStart = performance.now(); const trEl = document.getElementById("trending"); if (trEl) trEl.hidden = true; const nwEl = document.getElementById("latest-news"); if (nwEl) nwEl.hidden = true; const ndEl = document.getElementById("news-detail"); if (ndEl) ndEl.hidden = true;
   const resultsEl = document.getElementById("results");
   const copyBtn = document.getElementById("copy-link");
   const copyStatus = document.getElementById("copy-status");
@@ -815,7 +827,7 @@ function render(query) {
     window.novaraRecent = [query.trim(), ...window.novaraRecent.filter(q => q !== query.trim())].slice(0, 5);
   }
   if (!query.trim()) {
-    document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false;
+    document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
     ["ai", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
@@ -1270,6 +1282,68 @@ async function loadTrending() {
   box.querySelectorAll("[data-trend]").forEach(b => b.addEventListener("click", () => { document.getElementById("q").value = b.dataset.trend; hideSuggestions(); render(b.dataset.trend); }));
 }
 loadTrending();
+// Latest News on the homepage: live headlines with photos. The BBC News
+// RSS feed is fetched through the free rss2json converter (no key, CORS
+// enabled) — verified 2026-11-06 with curl: real headlines, photo
+// thumbnails and one-line summaries. GDELT was checked too but is
+// rate-limited from shared IPs (429), and Reddit blocks server fetches
+// (403), so they are not used. If the BBC feed fails, Google News India
+// is the fallback (headlines only, no photos, no usable summary). Nothing
+// is stored; the fetched stories live in memory for this session only.
+window.novaraNews = [];
+function newsTopic(title) {
+  // A short search topic from a headline: strip a trailing " - Source" and keep the first words.
+  const t = String(title || "").replace(/\s+-\s+[^-]+$/, "").trim();
+  return t.split(/\s+/).slice(0, 8).join(" ");
+}
+function openNewsDetail(i) {
+  const item = (window.novaraNews || [])[i]; if (!item) return;
+  const el = document.getElementById("news-detail"); if (!el) return;
+  const topic = newsTopic(item.title);
+  const enc = encodeURIComponent(topic);
+  const related = (window.novaraNews || []).map((r, j) => ({ r, j })).filter(x => x.j !== i).slice(0, 4);
+  el.innerHTML = `<h2>${esc(item.title)}</h2>` +
+    (item.thumb ? `<img src="${esc(item.thumb)}" alt="" style="width:100%;border-radius:12px" loading="lazy">` : "") +
+    `<p class="muted">${esc(item.source || "BBC News")}${item.pubDate ? ` · ${esc(item.pubDate)}` : ""}</p>` +
+    (item.desc ? `<p>${esc(item.desc)}</p>` : `<p class="muted">No summary is available from the news feed for this story — the full article is on the publisher's site.</p>`) +
+    `<p><a href="${esc(item.link)}" target="_blank" rel="noopener">Read the full story on ${esc(item.source || "the publisher's site")} →</a></p>` +
+    `<p><button class="search-btn" type="button" id="news-detail-search">Search this topic in Novara</button> <button class="clear-btn" type="button" id="news-detail-back">← Back to latest news</button></p>` +
+    `<p class="muted">Searching in Novara runs the topic through your documents and the web (Wikipedia, Internet Archive, GitHub, Hacker News, Stack Overflow) — that is the detailed background in Novara. The full article text itself lives on the publisher's site, because news sites do not let other pages fetch their articles directly.</p>` +
+    (related.length ? `<h3>Related stories</h3>` + related.map(x => `<div class="result"><a href="#" data-news="${x.j}"><b>${esc(x.r.title)}</b></a><div class="muted">${esc(x.r.source || "")}${x.r.pubDate ? ` · ${esc(x.r.pubDate)}` : ""}</div></div>`).join("") : "") +
+    `<h3>More coverage on the web</h3><p><a href="https://news.google.com/search?q=${enc}" target="_blank" rel="noopener">Google News</a> · <a href="https://www.google.com/search?q=${enc}&tbm=nws" target="_blank" rel="noopener">Google News search</a> · <a href="https://www.bing.com/news/search?q=${enc}" target="_blank" rel="noopener">Bing News</a> · <a href="https://duckduckgo.com/?q=${enc}&iar=news&ia=news" target="_blank" rel="noopener">DuckDuckGo News</a></p>`;
+  el.hidden = false;
+  el.querySelector("#news-detail-back").addEventListener("click", () => { el.hidden = true; });
+  el.querySelector("#news-detail-search").addEventListener("click", () => { document.getElementById("q").value = topic; hideSuggestions(); render(topic); });
+  el.querySelectorAll("[data-news]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); openNewsDetail(+a.dataset.news); }));
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+async function loadNews() {
+  const box = document.getElementById("news-cards"); if (!box) return;
+  const feeds = [
+    { url: "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent("https://feeds.bbci.co.uk/news/rss.xml"), source: "BBC News" },
+    { url: "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent("https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en"), source: "Google News" }
+  ];
+  for (const f of feeds) {
+    try {
+      const res = await fetch(f.url);
+      const data = await res.json();
+      const items = (data?.items || []).filter(it => it.title && it.link).slice(0, 6);
+      if (!items.length) continue;
+      window.novaraNews = items.map(it => ({
+        title: String(it.title).replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'"),
+        link: it.link, pubDate: it.pubDate || "",
+        desc: f.source === "Google News" ? "" : String(it.description || "").replace(/<[^>]+>/g, "").trim().slice(0, 300),
+        thumb: it.thumbnail || "", source: f.source
+      }));
+      break;
+    } catch (e) {}
+  }
+  const list = window.novaraNews;
+  if (!list.length) { box.innerHTML = `<p class="muted">Latest news is unavailable right now — try the "See all news" links below, or reload the page.</p>`; return; }
+  box.innerHTML = list.map((n, i) => `<button type="button" class="news-card" data-news="${i}">${n.thumb ? `<img src="${esc(n.thumb)}" alt="" loading="lazy">` : `<div style="height:120px;background:var(--accent)"></div>`}<span class="news-title">${esc(n.title)}</span><span class="news-meta">${esc(n.source)}${n.pubDate ? ` · ${esc(n.pubDate)}` : ""}</span></button>`).join("");
+  box.querySelectorAll("[data-news]").forEach(b => b.addEventListener("click", () => openNewsDetail(+b.dataset.news)));
+}
+loadNews();
 syncFilterControls();
 
 // Copy search link: copies the current (already shareable) URL, so a
