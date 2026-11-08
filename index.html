@@ -900,9 +900,71 @@ function instantAnswer(query) {
   try { const f = instantFmt(instantEval(expr)); return f === null ? "" : instantCard(esc(raw.replace(/[?=]\s*$/, "")), f); }
   catch (e) { return ""; }
 }
+// Weather instant answer: "weather in Mumbai", "weather Tokyo" or
+// "Mumbai weather" shows current conditions plus a 3-day forecast at
+// the top, from Open-Meteo's free geocoding + forecast APIs (no key,
+// CORS enabled). Nothing is sent anywhere else and nothing is stored:
+// the fetch runs live from the browser and the result is only painted
+// into the page. A sequence token cancels a slow fetch if the user
+// searches something else (or clears the box) before it finishes.
+let weatherSeq = 0;
+const WEATHER_CODES = {
+  0: ["☀️", "Clear sky"], 1: ["🌤️", "Mainly clear"], 2: ["⛅", "Partly cloudy"], 3: ["☁️", "Overcast"],
+  45: ["🌫️", "Fog"], 48: ["🌫️", "Depositing rime fog"],
+  51: ["🌦️", "Light drizzle"], 53: ["🌦️", "Moderate drizzle"], 55: ["🌦️", "Dense drizzle"],
+  56: ["🌦️", "Light freezing drizzle"], 57: ["🌦️", "Dense freezing drizzle"],
+  61: ["🌧️", "Slight rain"], 63: ["🌧️", "Moderate rain"], 65: ["🌧️", "Heavy rain"],
+  66: ["🌧️", "Light freezing rain"], 67: ["🌧️", "Heavy freezing rain"],
+  71: ["🌨️", "Slight snow"], 73: ["🌨️", "Moderate snow"], 75: ["🌨️", "Heavy snow"], 77: ["🌨️", "Snow grains"],
+  80: ["🌧️", "Slight rain showers"], 81: ["🌧️", "Moderate rain showers"], 82: ["🌧️", "Violent rain showers"],
+  85: ["🌨️", "Slight snow showers"], 86: ["🌨️", "Heavy snow showers"],
+  95: ["⛈️", "Thunderstorm"], 96: ["⛈️", "Thunderstorm with slight hail"], 99: ["⛈️", "Thunderstorm with heavy hail"]
+};
+function weatherPlace(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!q) return null;
+  let m = /^(?:weather|temperature|temp|forecast)(?:\s+in|\s+for)?\s+(.+)$/.exec(q);
+  if (m) return m[1].trim();
+  m = /^(.+?)\s+(?:weather|temperature|temp|forecast)$/.exec(q);
+  if (m) return m[1].trim();
+  return null;
+}
+async function fetchWeather(place, mySeq) {
+  const el = document.getElementById("instant"); if (!el) return;
+  try {
+    const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`);
+    const gd = await g.json();
+    const loc = gd && gd.results && gd.results[0];
+    if (mySeq !== weatherSeq) return;
+    if (!loc) {
+      el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p>Couldn't find a place called “${esc(place)}” — try a city name, e.g. <b>weather in Mumbai</b>.</p><p class="muted">Place search by Open-Meteo — free, no key, nothing stored.</p></section>`;
+      return;
+    }
+    const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=3`);
+    const fd = await f.json();
+    if (mySeq !== weatherSeq) return;
+    const cur = fd && fd.current; const daily = fd && fd.daily;
+    if (!cur || !daily || !daily.time || !daily.time.length) { el.innerHTML = ""; return; }
+    const wc = WEATHER_CODES[cur.weather_code] || ["🌤️", "—"];
+    const where = [loc.name, loc.admin1, loc.country].filter(Boolean).join(", ");
+    const days = daily.time.map((t, i) => {
+      const dwc = WEATHER_CODES[daily.weather_code[i]] || ["🌤️", ""];
+      const label = i === 0 ? "Today" : new Date(t + "T12:00:00").toLocaleDateString("en", { weekday: "short" });
+      const rain = daily.precipitation_probability_max[i];
+      return `<div><b>${esc(label)}</b><br>${dwc[0]} ${Math.round(daily.temperature_2m_max[i])}° / ${Math.round(daily.temperature_2m_min[i])}°<br><span class="muted">💧 ${rain == null ? "—" : rain + "%"} rain</span></div>`;
+    }).join("");
+    el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">${wc[0]} <b>${Math.round(cur.temperature_2m)}°C</b> <span style="font-size:16px">${esc(wc[1])}</span></p><p>Feels like ${Math.round(cur.apparent_temperature)}°C · Humidity ${cur.relative_humidity_2m}% · Wind ${Math.round(cur.wind_speed_10m)} km/h</p><p class="muted">Local time ${esc(String(cur.time).slice(11, 16))}</p><div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">${days}</div><p class="muted">Weather from Open-Meteo — free, no key, nothing stored.</p></section>`;
+  } catch (e) { if (mySeq === weatherSeq) el.innerHTML = ""; }
+}
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
-  el.innerHTML = instantAnswer(query);
+  const mySeq = ++weatherSeq;
+  const sync = instantAnswer(query);
+  if (sync) { el.innerHTML = sync; return; }
+  const place = weatherPlace(query);
+  if (!place) { el.innerHTML = ""; return; }
+  el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
+  fetchWeather(place, mySeq);
 }
 
 function render(query) {
@@ -918,6 +980,7 @@ function render(query) {
   if (!query.trim()) {
     document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
+    weatherSeq++; // Cancel any weather fetch still in flight.
     ["ai", "instant", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
     // Clear any previous search from the address bar, in place.

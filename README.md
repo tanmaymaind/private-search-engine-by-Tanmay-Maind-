@@ -50,7 +50,10 @@ only, nothing stored), instant answers: type a calculation like
 “12 * 8”, “15% of 200” or “sqrt(16)”, or a conversion like “10 km in
 miles” or “100 c in f”, and the answer appears at the top, computed
 entirely in your browser with a safe parser (never `eval()`), no API
-call and nothing stored, and shareable
+call and nothing stored, weather: type “weather in Mumbai”, “weather
+Tokyo” or “Mumbai weather” and the current conditions plus a 3-day
+forecast appear at the top, from Open-Meteo’s free no-key API, nothing
+stored, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.
