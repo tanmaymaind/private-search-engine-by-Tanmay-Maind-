@@ -53,6 +53,10 @@ entirely in your browser with a safe parser (never `eval()`), no API
 call and nothing stored, weather: type “weather in Mumbai”, “weather
 Tokyo” or “Mumbai weather” and the current conditions plus a 3-day
 forecast appear at the top, from Open-Meteo’s free no-key API, nothing
+stored, dictionary: type “define serendipity”, “meaning of ephemeral”
+or “what does ubiquitous mean” and the word, its pronunciation (with
+audio), definitions with examples and synonyms appear at the top, from
+the Free Dictionary API (free, no key, Wiktionary data), nothing
 stored, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a

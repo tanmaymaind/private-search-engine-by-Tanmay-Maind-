@@ -956,15 +956,73 @@ async function fetchWeather(place, mySeq) {
     el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">${wc[0]} <b>${Math.round(cur.temperature_2m)}°C</b> <span style="font-size:16px">${esc(wc[1])}</span></p><p>Feels like ${Math.round(cur.apparent_temperature)}°C · Humidity ${cur.relative_humidity_2m}% · Wind ${Math.round(cur.wind_speed_10m)} km/h</p><p class="muted">Local time ${esc(String(cur.time).slice(11, 16))}</p><div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">${days}</div><p class="muted">Weather from Open-Meteo — free, no key, nothing stored.</p></section>`;
   } catch (e) { if (mySeq === weatherSeq) el.innerHTML = ""; }
 }
+// Dictionary instant answer: "define serendipity", "meaning of
+// ephemeral", "what does ubiquitous mean" or "definition of karma"
+// shows the word, its pronunciation (with audio), up to 3 definitions
+// with examples, and synonyms at the top, from the Free Dictionary
+// API (dictionaryapi.dev — free, no key, CORS enabled, Wiktionary
+// data). Only triggers on those explicit patterns and only for a
+// single word, so normal searches never see this card. A sequence
+// token cancels a slow fetch if the user searches something else
+// (or clears the box) before it finishes. Nothing is stored.
+let dictSeq = 0;
+function dictWord(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  let m = /^define\s+(.+)$/.exec(q);
+  if (!m) m = /^(?:definition|meaning)\s+of\s+(.+)$/.exec(q);
+  if (!m) m = /^what\s+does\s+(.+?)\s+mean$/.exec(q);
+  if (!m) m = /^what\s+is\s+the\s+meaning\s+of\s+(.+)$/.exec(q);
+  if (!m) return null;
+  const word = m[1].trim();
+  if (!/^[a-z][a-z\-']{0,29}$/.test(word)) return null;
+  return word;
+}
+async function fetchDictionary(word, mySeq) {
+  const el = document.getElementById("instant"); if (!el) return;
+  try {
+    const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+    if (mySeq !== dictSeq) return;
+    if (!r.ok) {
+      el.innerHTML = `<section class="card ai-card"><h2>📖 Dictionary</h2><p>No definition found for “${esc(word)}” — check the spelling, or try another word, e.g. <b>define serendipity</b>.</p><p class="muted">Definitions from the Free Dictionary API — free, no key, nothing stored.</p></section>`;
+      return;
+    }
+    const data = await r.json();
+    const entry = data && data[0];
+    if (!entry || !entry.meanings || !entry.meanings.length) { el.innerHTML = ""; return; }
+    const phonetics = entry.phonetics || [];
+    const phonetic = phonetics.find(p => p.text);
+    const audio = phonetics.find(p => p.audio);
+    const defs = [];
+    for (const meaning of entry.meanings) {
+      for (const d of (meaning.definitions || [])) {
+        defs.push({ pos: meaning.partOfSpeech, def: d.definition, example: d.example });
+        if (defs.length >= 3) break;
+      }
+      if (defs.length >= 3) break;
+    }
+    if (!defs.length) { el.innerHTML = ""; return; }
+    const syns = [...new Set(entry.meanings.flatMap(mn => mn.synonyms || []))].slice(0, 6);
+    const wordUrl = (entry.sourceUrls && entry.sourceUrls[0]) || ("https://en.wiktionary.org/wiki/" + encodeURIComponent(word));
+    el.innerHTML = `<section class="card ai-card"><h2>📖 Dictionary</h2><p style="font-size:26px;margin:6px 0"><b>${esc(entry.word || word)}</b>${phonetic ? ` <span style="font-size:16px" class="muted">${esc(phonetic.text)}</span>` : ""}</p>${audio ? `<p><audio controls preload="none" src="${esc(audio.audio)}" style="height:32px;vertical-align:middle"></audio> <span class="muted">Hear the pronunciation</span></p>` : ""}<ol style="margin:6px 0 6px 20px">${defs.map(d => `<li style="margin-bottom:6px"><i>${esc(d.pos || "")}</i> — ${esc(d.def)}${d.example ? `<br><span class="muted">“${esc(d.example)}”</span>` : ""}</li>`).join("")}</ol>${syns.length ? `<p>Synonyms: ${syns.map(s => esc(s)).join(" · ")}</p>` : ""}<p class="muted">Definitions from the Free Dictionary API (Wiktionary) — free, no key, nothing stored. <a href="${esc(wordUrl)}" target="_blank" rel="noopener">More on Wiktionary ↗</a></p></section>`;
+  } catch (e) { if (mySeq === dictSeq) el.innerHTML = ""; }
+}
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
   const mySeq = ++weatherSeq;
+  const myDictSeq = ++dictSeq;
   const sync = instantAnswer(query);
   if (sync) { el.innerHTML = sync; return; }
   const place = weatherPlace(query);
-  if (!place) { el.innerHTML = ""; return; }
-  el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
-  fetchWeather(place, mySeq);
+  if (place) {
+    el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
+    fetchWeather(place, mySeq);
+    return;
+  }
+  const word = dictWord(query);
+  if (!word) { el.innerHTML = ""; return; }
+  el.innerHTML = `<section class="card ai-card"><h2>📖 Dictionary</h2><p class="muted">Looking up “${esc(word)}”…</p></section>`;
+  fetchDictionary(word, myDictSeq);
 }
 
 function render(query) {
@@ -980,7 +1038,7 @@ function render(query) {
   if (!query.trim()) {
     document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
-    weatherSeq++; // Cancel any weather fetch still in flight.
+    weatherSeq++; dictSeq++; // Cancel any weather/dictionary fetch still in flight.
     ["ai", "instant", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
     // Clear any previous search from the address bar, in place.
