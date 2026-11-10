@@ -57,7 +57,10 @@ stored, dictionary: type “define serendipity”, “meaning of ephemeral”
 or “what does ubiquitous mean” and the word, its pronunciation (with
 audio), definitions with examples and synonyms appear at the top, from
 the Free Dictionary API (free, no key, Wiktionary data), nothing
-stored, and shareable
+stored, time: type “time in Tokyo”, “what time is it in London” or
+“New York time” and the current time, date and weekday in that city
+appear at the top, with your own local time for comparison, computed
+entirely in your browser with no API call and nothing stored, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.

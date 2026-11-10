@@ -1007,12 +1007,68 @@ async function fetchDictionary(word, mySeq) {
     el.innerHTML = `<section class="card ai-card"><h2>📖 Dictionary</h2><p style="font-size:26px;margin:6px 0"><b>${esc(entry.word || word)}</b>${phonetic ? ` <span style="font-size:16px" class="muted">${esc(phonetic.text)}</span>` : ""}</p>${audio ? `<p><audio controls preload="none" src="${esc(audio.audio)}" style="height:32px;vertical-align:middle"></audio> <span class="muted">Hear the pronunciation</span></p>` : ""}<ol style="margin:6px 0 6px 20px">${defs.map(d => `<li style="margin-bottom:6px"><i>${esc(d.pos || "")}</i> — ${esc(d.def)}${d.example ? `<br><span class="muted">“${esc(d.example)}”</span>` : ""}</li>`).join("")}</ol>${syns.length ? `<p>Synonyms: ${syns.map(s => esc(s)).join(" · ")}</p>` : ""}<p class="muted">Definitions from the Free Dictionary API (Wiktionary) — free, no key, nothing stored. <a href="${esc(wordUrl)}" target="_blank" rel="noopener">More on Wiktionary ↗</a></p></section>`;
   } catch (e) { if (mySeq === dictSeq) el.innerHTML = ""; }
 }
+// Time instant answer: "time in Tokyo", "current time in London",
+// "what time is it in Paris" or "Tokyo time" shows the current time,
+// date and weekday in that city at the top, plus your own local time
+// for comparison. Computed entirely in your browser with
+// Intl.DateTimeFormat and a small built-in city -> IANA time-zone map
+// — no API call, nothing sent anywhere, nothing stored. Only triggers
+// on those explicit patterns and only for a city in the map, so normal
+// searches never see this card.
+const TIME_ZONES = {
+  "mumbai": "Asia/Kolkata", "delhi": "Asia/Kolkata", "new delhi": "Asia/Kolkata",
+  "kolkata": "Asia/Kolkata", "chennai": "Asia/Kolkata", "bengaluru": "Asia/Kolkata",
+  "bangalore": "Asia/Kolkata", "hyderabad": "Asia/Kolkata", "pune": "Asia/Kolkata",
+  "ahmedabad": "Asia/Kolkata", "jaipur": "Asia/Kolkata", "lucknow": "Asia/Kolkata",
+  "london": "Europe/London", "paris": "Europe/Paris", "berlin": "Europe/Berlin",
+  "madrid": "Europe/Madrid", "rome": "Europe/Rome", "amsterdam": "Europe/Amsterdam",
+  "moscow": "Europe/Moscow", "istanbul": "Europe/Istanbul", "dubai": "Asia/Dubai",
+  "tokyo": "Asia/Tokyo", "osaka": "Asia/Tokyo", "seoul": "Asia/Seoul",
+  "beijing": "Asia/Shanghai", "shanghai": "Asia/Shanghai", "hong kong": "Asia/Hong_Kong",
+  "singapore": "Asia/Singapore", "bangkok": "Asia/Bangkok", "jakarta": "Asia/Jakarta",
+  "kathmandu": "Asia/Kathmandu", "dhaka": "Asia/Dhaka", "colombo": "Asia/Colombo",
+  "karachi": "Asia/Karachi", "lahore": "Asia/Karachi",
+  "new york": "America/New_York", "los angeles": "America/Los_Angeles",
+  "chicago": "America/Chicago", "san francisco": "America/Los_Angeles",
+  "toronto": "America/Toronto", "vancouver": "America/Vancouver",
+  "mexico city": "America/Mexico_City", "sao paulo": "America/Sao_Paulo",
+  "sydney": "Australia/Sydney", "melbourne": "Australia/Melbourne",
+  "auckland": "Pacific/Auckland", "cairo": "Africa/Cairo", "lagos": "Africa/Lagos",
+  "johannesburg": "Africa/Johannesburg", "nairobi": "Africa/Nairobi"
+};
+function timePlace(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  let m = /^(?:current\s+)?time\s+(?:in|at|for)\s+(.+)$/.exec(q);
+  if (!m) m = /^what\s+time\s+is\s+it\s+(?:in|at)\s+(.+?)(?:\s+now)?$/.exec(q);
+  if (!m) m = /^(.+?)\s+time(?:\s+now)?$/.exec(q);
+  if (!m) return null;
+  const place = m[1].trim();
+  if (!TIME_ZONES[place]) return null;
+  return place;
+}
+function timeAnswer(place) {
+  const tz = TIME_ZONES[place];
+  const now = new Date();
+  try {
+    const time = new Intl.DateTimeFormat("en", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }).format(now);
+    const date = new Intl.DateTimeFormat("en", { timeZone: tz, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now);
+    const offParts = new Intl.DateTimeFormat("en", { timeZone: tz, timeZoneName: "shortOffset", hour: "numeric" }).formatToParts(now);
+    const off = offParts.find(p => p.type === "timeZoneName");
+    const offset = off ? off.value.replace(/^GMT/, "UTC") : "";
+    const mine = new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit", hour12: true }).format(now);
+    const label = place.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    return `<section class="card ai-card"><h2>🕐 Time in ${esc(label)}</h2><p style="font-size:26px;margin:6px 0"><b>${esc(time)}</b></p><p>${esc(date)}${offset ? ` · ${esc(offset)}` : ""}</p><p class="muted">Your time: ${esc(mine)}. Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  } catch (e) { return ""; }
+}
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
   const mySeq = ++weatherSeq;
   const myDictSeq = ++dictSeq;
   const sync = instantAnswer(query);
   if (sync) { el.innerHTML = sync; return; }
+  const tPlace = timePlace(query);
+  if (tPlace) { const t = timeAnswer(tPlace); if (t) { el.innerHTML = t; return; } }
   const place = weatherPlace(query);
   if (place) {
     el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
