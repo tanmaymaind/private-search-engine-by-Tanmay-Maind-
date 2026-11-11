@@ -1061,14 +1061,122 @@ function timeAnswer(place) {
     return `<section class="card ai-card"><h2>🕐 Time in ${esc(label)}</h2><p style="font-size:26px;margin:6px 0"><b>${esc(time)}</b></p><p>${esc(date)}${offset ? ` · ${esc(offset)}` : ""}</p><p class="muted">Your time: ${esc(mine)}. Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
   } catch (e) { return ""; }
 }
+// Currency converter instant answer: "100 USD to INR", "50 dollars
+// in rupees", "USD to INR" or "convert 100 euros to pounds" shows the
+// converted amount at the top, from exchangerate-api.com's free
+// no-key API (CORS enabled, 160+ currencies, updated daily). Only
+// triggers on those explicit patterns and only for a currency in the
+// map, so normal searches never see this card. A sequence token
+// cancels a slow fetch if the user searches something else (or clears
+// the box) before it finishes. Nothing is stored.
+let currencySeq = 0;
+const CURRENCIES = {
+  "usd": "USD", "dollar": "USD", "dollars": "USD", "us dollar": "USD", "us dollars": "USD", "$": "USD",
+  "inr": "INR", "rupee": "INR", "rupees": "INR", "rs": "INR", "₹": "INR",
+  "eur": "EUR", "euro": "EUR", "euros": "EUR", "€": "EUR",
+  "gbp": "GBP", "pound": "GBP", "pounds": "GBP", "british pound": "GBP", "british pounds": "GBP", "sterling": "GBP", "£": "GBP",
+  "jpy": "JPY", "yen": "JPY", "¥": "JPY",
+  "aud": "AUD", "australian dollar": "AUD", "australian dollars": "AUD",
+  "cad": "CAD", "canadian dollar": "CAD", "canadian dollars": "CAD",
+  "chf": "CHF", "swiss franc": "CHF", "franc": "CHF", "francs": "CHF",
+  "cny": "CNY", "yuan": "CNY", "renminbi": "CNY",
+  "aed": "AED", "dirham": "AED", "dirhams": "AED",
+  "sar": "SAR", "riyal": "SAR", "riyals": "SAR", "saudi riyal": "SAR",
+  "sgd": "SGD", "singapore dollar": "SGD", "singapore dollars": "SGD",
+  "hkd": "HKD", "hong kong dollar": "HKD", "hong kong dollars": "HKD",
+  "nzd": "NZD", "new zealand dollar": "NZD",
+  "krw": "KRW", "won": "KRW",
+  "brl": "BRL", "real": "BRL", "reais": "BRL", "brazilian real": "BRL",
+  "mxn": "MXN", "mexican peso": "MXN",
+  "zar": "ZAR", "rand": "ZAR",
+  "rub": "RUB", "ruble": "RUB", "rubles": "RUB",
+  "try": "TRY", "lira": "TRY", "turkish lira": "TRY",
+  "thb": "THB", "baht": "THB",
+  "myr": "MYR", "ringgit": "MYR",
+  "idr": "IDR", "rupiah": "IDR",
+  "php": "PHP", "philippine peso": "PHP",
+  "vnd": "VND", "dong": "VND",
+  "pkr": "PKR", "pakistani rupee": "PKR",
+  "bdt": "BDT", "taka": "BDT",
+  "npr": "NPR", "nepalese rupee": "NPR",
+  "lkr": "LKR", "sri lankan rupee": "LKR",
+  "kwd": "KWD", "kuwaiti dinar": "KWD",
+  "bhd": "BHD", "bahraini dinar": "BHD",
+  "omr": "OMR", "omani rial": "OMR",
+  "qar": "QAR", "qatari riyal": "QAR",
+  "egp": "EGP", "egyptian pound": "EGP",
+  "ngn": "NGN", "naira": "NGN",
+  "kes": "KES", "kenyan shilling": "KES",
+  "pln": "PLN", "zloty": "PLN", "polish zloty": "PLN",
+  "sek": "SEK", "swedish krona": "SEK",
+  "nok": "NOK", "norwegian krone": "NOK",
+  "dkk": "DKK", "danish krone": "DKK",
+  "czk": "CZK", "czech koruna": "CZK",
+  "huf": "HUF", "forint": "HUF",
+  "ils": "ILS", "shekel": "ILS", "shekels": "ILS",
+  "twd": "TWD", "new taiwan dollar": "TWD",
+  "uah": "UAH", "hryvnia": "UAH",
+  "ars": "ARS", "argentine peso": "ARS",
+  "clp": "CLP", "chilean peso": "CLP",
+  "cop": "COP", "colombian peso": "COP",
+  "pen": "PEN", "sol": "PEN", "peruvian sol": "PEN",
+  "ron": "RON", "leu": "RON", "romanian leu": "RON",
+  "isk": "ISK", "icelandic krona": "ISK"
+};
+function currencyQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  const m = /^(?:convert\s+|how much is\s+)?([0-9][0-9,]*(?:\.[0-9]+)?)?\s*([a-z$€£¥₹]+(?: [a-z]+)?)\s+(?:in|to|=)\s+([a-z$€£¥₹]+(?: [a-z]+)?)$/.exec(q);
+  if (!m) return null;
+  const from = CURRENCIES[m[2].trim()];
+  const to = CURRENCIES[m[3].trim()];
+  if (!from || !to || from === to) return null;
+  const amount = m[1] ? parseFloat(m[1].replace(/,/g, "")) : 1;
+  if (!isFinite(amount) || amount <= 0) return null;
+  return { amount, from, to };
+}
+function currencyFmt(n) {
+  if (typeof n !== "number" || !isFinite(n)) return null;
+  const abs = Math.abs(n);
+  const max = abs >= 1 ? 2 : abs >= 0.01 ? 4 : 6;
+  return n.toLocaleString("en-US", { minimumFractionDigits: abs >= 1 ? 2 : 0, maximumFractionDigits: max });
+}
+async function fetchCurrency(amount, from, to, mySeq) {
+  const el = document.getElementById("instant"); if (!el) return;
+  try {
+    const r = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+    const d = await r.json();
+    if (mySeq !== currencySeq) return;
+    const rate = d && d.rates && d.rates[to];
+    const amt = currencyFmt(amount);
+    if (!rate || !amt) {
+      el.innerHTML = `<section class="card ai-card"><h2>💱 Currency converter</h2><p>No exchange rate found for ${esc(from)} → ${esc(to)} — try a common pair, e.g. <b>100 USD to INR</b>.</p><p class="muted">Exchange rates from exchangerate-api.com — free, no key, nothing stored.</p></section>`;
+      return;
+    }
+    const converted = currencyFmt(amount * rate);
+    const rateStr = currencyFmt(rate);
+    let dateStr = "";
+    if (d.date) { try { dateStr = new Date(d.date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); } catch (e) {} }
+    const value = `${converted} ${to}`;
+    el.innerHTML = `<section class="card ai-card"><h2>💱 Currency converter</h2><p style="font-size:26px;margin:6px 0">${esc(amt)} ${esc(from)} = <b>${esc(value)}</b></p><p>1 ${esc(from)} = ${esc(rateStr)} ${esc(to)}${dateStr ? ` · Rates for ${esc(dateStr)}` : ""}</p><p><button class="clear-btn" type="button" data-v="${esc(value)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Exchange rates from exchangerate-api.com — free, no key, nothing stored.</p></section>`;
+  } catch (e) { if (mySeq === currencySeq) el.innerHTML = ""; }
+}
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
   const mySeq = ++weatherSeq;
   const myDictSeq = ++dictSeq;
+  const myCurrSeq = ++currencySeq;
   const sync = instantAnswer(query);
   if (sync) { el.innerHTML = sync; return; }
   const tPlace = timePlace(query);
   if (tPlace) { const t = timeAnswer(tPlace); if (t) { el.innerHTML = t; return; } }
+  const curr = currencyQuery(query);
+  if (curr) {
+    const amt = currencyFmt(curr.amount);
+    el.innerHTML = `<section class="card ai-card"><h2>💱 Currency converter</h2><p class="muted">Converting ${esc(amt || String(curr.amount))} ${esc(curr.from)} to ${esc(curr.to)}…</p></section>`;
+    fetchCurrency(curr.amount, curr.from, curr.to, myCurrSeq);
+    return;
+  }
   const place = weatherPlace(query);
   if (place) {
     el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
@@ -1094,7 +1202,7 @@ function render(query) {
   if (!query.trim()) {
     document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
-    weatherSeq++; dictSeq++; // Cancel any weather/dictionary fetch still in flight.
+    weatherSeq++; dictSeq++; currencySeq++; // Cancel any weather/dictionary/currency fetch still in flight.
     ["ai", "instant", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
     // Clear any previous search from the address bar, in place.
