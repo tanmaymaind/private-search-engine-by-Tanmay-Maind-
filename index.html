@@ -1161,6 +1161,115 @@ async function fetchCurrency(amount, from, to, mySeq) {
     el.innerHTML = `<section class="card ai-card"><h2>💱 Currency converter</h2><p style="font-size:26px;margin:6px 0">${esc(amt)} ${esc(from)} = <b>${esc(value)}</b></p><p>1 ${esc(from)} = ${esc(rateStr)} ${esc(to)}${dateStr ? ` · Rates for ${esc(dateStr)}` : ""}</p><p><button class="clear-btn" type="button" data-v="${esc(value)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Exchange rates from exchangerate-api.com — free, no key, nothing stored.</p></section>`;
   } catch (e) { if (mySeq === currencySeq) el.innerHTML = ""; }
 }
+// Date countdown instant answer: "days until Christmas", "how many days
+// until 1 January 2027", "days since 15 August 2026" or "today's date"
+// shows the number of days (or today's date and weekday) at the top.
+// Computed entirely in your browser from the date you type — no API
+// call, nothing sent anywhere, nothing stored. Only triggers on those
+// explicit patterns, so normal searches never see this card. Named
+// days are the fixed-date ones plus Diwali for the years listed
+// (Diwali 2026: 8 November; Diwali 2027: 29 October); a date the page
+// cannot work out falls through to a normal search instead of
+// guessing. Dates may be typed as "1 January 2027", "January 1, 2027",
+// "2027-01-01" or day-first "01/01/2027".
+const COUNTDOWN_MONTHS = { january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2, april: 3, apr: 3, may: 4, june: 5, jun: 5, july: 6, jul: 6, august: 7, aug: 7, september: 8, sep: 8, sept: 8, october: 9, oct: 9, november: 10, nov: 10, december: 11, dec: 11 };
+const COUNTDOWN_DAYS = {
+  "new year": [0, 1], "new year's day": [0, 1], "new years day": [0, 1],
+  "christmas": [11, 25], "christmas day": [11, 25],
+  "valentine's day": [1, 14], "valentines day": [1, 14],
+  "halloween": [9, 31],
+  "republic day": [0, 26],
+  "independence day": [7, 15]
+};
+const COUNTDOWN_DIWALI = { 2026: [10, 8], 2027: [9, 29] };
+function countdownFmt(d) { return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
+function countdownTitle(s) { return s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "); }
+function countdownDate(month, day, year) {
+  const d = new Date(year, month, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month || d.getDate() !== day) return null;
+  return d;
+}
+function countdownResolve(text, mode) {
+  const t = (text || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!t) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let candidates = [];
+  let fixedLabel = null;
+  const named = COUNTDOWN_DAYS[t];
+  if (named) {
+    fixedLabel = countdownTitle(t);
+    for (const year of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+      const d = countdownDate(named[0], named[1], year);
+      if (d) candidates.push(d);
+    }
+  } else if (t === "diwali" || t === "deepavali" || t === "deepawali") {
+    fixedLabel = "Diwali";
+    for (const year of Object.keys(COUNTDOWN_DIWALI).map(Number).sort((a, b) => a - b)) {
+      const d = countdownDate(COUNTDOWN_DIWALI[year][0], COUNTDOWN_DIWALI[year][1], year);
+      if (d) candidates.push(d);
+    }
+  } else {
+    let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
+    if (m) { const d = countdownDate(+m[2] - 1, +m[3], +m[1]); return d ? { target: d, label: countdownFmt(d) } : null; }
+    m = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)(?:\s+(\d{4}))?$/.exec(t);
+    if (m && COUNTDOWN_MONTHS[m[2]] !== undefined) {
+      const month = COUNTDOWN_MONTHS[m[2]], day = +m[1];
+      if (m[3]) { const d = countdownDate(month, day, +m[3]); return d ? { target: d, label: countdownFmt(d) } : null; }
+      for (const year of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+        const d = countdownDate(month, day, year);
+        if (d) candidates.push(d);
+      }
+    } else {
+      m = /^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?$/.exec(t);
+      if (m && COUNTDOWN_MONTHS[m[1]] !== undefined) {
+        const month = COUNTDOWN_MONTHS[m[1]], day = +m[2];
+        if (m[3]) { const d = countdownDate(month, day, +m[3]); return d ? { target: d, label: countdownFmt(d) } : null; }
+        for (const year of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+          const d = countdownDate(month, day, year);
+          if (d) candidates.push(d);
+        }
+      } else {
+        m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
+        if (m) { const d = countdownDate(+m[2] - 1, +m[1], +m[3]); return d ? { target: d, label: countdownFmt(d) } : null; }
+        return null;
+      }
+    }
+  }
+  candidates = candidates.filter(Boolean).sort((a, b) => a - b);
+  if (!candidates.length) return null;
+  let target = null;
+  if (mode === "until") target = candidates.find(d => d >= today) || null;
+  else target = [...candidates].reverse().find(d => d <= today) || null;
+  if (!target) return null;
+  return { target, label: fixedLabel || countdownFmt(target) };
+}
+function countdownQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  if (/^(?:what(?:'s| is) (?:the )?(?:date|day)(?: today)?|today(?:'s)? date|what day is it(?: today)?)$/.test(q)) return { mode: "today" };
+  let m = /^(?:how many days |days )?(?:left )?(?:until|to)\s+(.+)$/.exec(q);
+  if (m) { const r = countdownResolve(m[1], "until"); return r ? { mode: "until", target: r.target, label: r.label } : null; }
+  m = /^(?:how many days |days )?(?:have passed )?since\s+(.+)$/.exec(q);
+  if (m) { const r = countdownResolve(m[1], "since"); return r ? { mode: "since", target: r.target, label: r.label } : null; }
+  return null;
+}
+function countdownAnswer(parsed) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (parsed.mode === "today") {
+    return `<section class="card ai-card"><h2>📅 Today's date</h2><p style="font-size:26px;margin:6px 0"><b>${esc(countdownFmt(today))}</b></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  }
+  const diff = Math.round(((parsed.mode === "until" ? parsed.target : today) - (parsed.mode === "until" ? today : parsed.target)) / 86400000);
+  const when = countdownFmt(parsed.target);
+  if (diff === 0) {
+    return `<section class="card ai-card"><h2>📅 ${parsed.mode === "until" ? "Countdown" : "Days since"}</h2><p style="font-size:26px;margin:6px 0">🎉 <b>Today is ${esc(parsed.label)}!</b></p><p>${esc(when)}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  }
+  const line = parsed.mode === "until"
+    ? `<b>${diff}</b> ${diff === 1 ? "day" : "days"} to go until <b>${esc(parsed.label)}</b>`
+    : `<b>${diff}</b> ${diff === 1 ? "day" : "days"} since <b>${esc(parsed.label)}</b>`;
+  return `<section class="card ai-card"><h2>📅 ${parsed.mode === "until" ? "Countdown" : "Days since"}</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(when)}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
   const mySeq = ++weatherSeq;
@@ -1177,6 +1286,8 @@ function renderInstant(query) {
     fetchCurrency(curr.amount, curr.from, curr.to, myCurrSeq);
     return;
   }
+  const cd = countdownQuery(query);
+  if (cd) { el.innerHTML = countdownAnswer(cd); return; }
   const place = weatherPlace(query);
   if (place) {
     el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
@@ -1340,7 +1451,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");

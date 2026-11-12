@@ -64,7 +64,11 @@ entirely in your browser with no API call and nothing stored,
 currency: type “100 USD to INR”, “50 dollars in rupees” or “USD to
 INR” and the converted amount appears at the top, from
 exchangerate-api.com’s free no-key API (160+ currencies, rates
-updated daily), nothing stored, and shareable
+updated daily), nothing stored, countdown: type “days until Christmas”,
+“days until 1 January 2027”, “days since 15 August 2026” or “today's
+date” and the number of days (or today's date and weekday) appears at
+the top, computed entirely in your browser with no API call and nothing
+stored, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.
