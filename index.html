@@ -1270,11 +1270,61 @@ function countdownAnswer(parsed) {
     : `<b>${diff}</b> ${diff === 1 ? "day" : "days"} since <b>${esc(parsed.label)}</b>`;
   return `<section class="card ai-card"><h2>📅 ${parsed.mode === "until" ? "Countdown" : "Days since"}</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(when)}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// Translate instant answer: "translate hello to Hindi", "translate
+// good morning into Marathi", "how do you say thank you in Spanish"
+// or "how to say hello in French" shows the translation at the top,
+// from MyMemory's free no-key API (CORS enabled, translation memory
+// plus machine translation). English is the source language; the
+// target is any language in the map below. Only triggers on those
+// explicit patterns, so normal searches never see this card. A
+// sequence token cancels a slow fetch if the user searches something
+// else (or clears the box) before it finishes. Nothing is stored.
+let translateSeq = 0;
+const TRANSLATE_LANGS = {
+  "hindi": "hi", "marathi": "mr", "english": "en", "spanish": "es",
+  "french": "fr", "german": "de", "italian": "it", "portuguese": "pt",
+  "russian": "ru", "japanese": "ja", "korean": "ko", "chinese": "zh-CN",
+  "arabic": "ar", "bengali": "bn", "tamil": "ta", "telugu": "te",
+  "gujarati": "gu", "punjabi": "pa", "urdu": "ur", "dutch": "nl",
+  "swedish": "sv", "turkish": "tr", "polish": "pl", "indonesian": "id",
+  "thai": "th", "vietnamese": "vi", "malay": "ms", "nepali": "ne",
+  "kannada": "kn", "malayalam": "ml", "odia": "or", "assamese": "as",
+  "sanskrit": "sa"
+};
+function translateQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  let m = /^translate\s+(.+?)\s+(?:to|into|in)\s+([a-z]+(?: [a-z]+)?)$/.exec(q);
+  if (!m) m = /^how\s+(?:do\s+you|to)\s+say\s+(.+?)\s+in\s+([a-z]+(?: [a-z]+)?)$/.exec(q);
+  if (!m) return null;
+  const lang = TRANSLATE_LANGS[m[2].trim()];
+  if (!lang || lang === "en") return null;
+  let text = m[1].trim().replace(/^["'“”]+|["'“”]+$/g, "").trim();
+  if (!text || text.length > 120 || !/[a-z]/.test(text)) return null;
+  if (!/^[a-z0-9 ,.'’!?\-]+$/.test(text)) return null;
+  return { text, lang, langName: m[2].trim() };
+}
+function translateTitle(s) { return s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "); }
+async function fetchTranslation(parsed, mySeq) {
+  const el = document.getElementById("instant"); if (!el) return;
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(parsed.text)}&langpair=en|${encodeURIComponent(parsed.lang)}`);
+    const d = await r.json();
+    if (mySeq !== translateSeq) return;
+    const out = d && d.responseData && d.responseData.translatedText;
+    if (!r.ok || !out || d.quotaFinished) {
+      el.innerHTML = `<section class="card ai-card"><h2>🌐 Translate to ${esc(translateTitle(parsed.langName))}</h2><p>Couldn't translate “${esc(parsed.text)}” just now — the free translation service may be busy. Try again, e.g. <b>translate hello to ${esc(translateTitle(parsed.langName))}</b>.</p><p class="muted">Translations from MyMemory — free, no key, nothing stored.</p></section>`;
+      return;
+    }
+    el.innerHTML = `<section class="card ai-card"><h2>🌐 Translate to ${esc(translateTitle(parsed.langName))}</h2><p style="font-size:20px;margin:6px 0">“${esc(parsed.text)}”</p><p style="font-size:26px;margin:6px 0"><b>${esc(out)}</b></p><p><button class="clear-btn" type="button" data-v="${esc(out)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Translation copied.'));">📋 Copy translation</button></p><p class="muted">Translations from MyMemory (translation memory + machine translation) — free, no key, nothing stored.</p></section>`;
+  } catch (e) { if (mySeq === translateSeq) el.innerHTML = ""; }
+}
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
   const mySeq = ++weatherSeq;
   const myDictSeq = ++dictSeq;
   const myCurrSeq = ++currencySeq;
+  const myTrSeq = ++translateSeq;
   const sync = instantAnswer(query);
   if (sync) { el.innerHTML = sync; return; }
   const tPlace = timePlace(query);
@@ -1288,6 +1338,12 @@ function renderInstant(query) {
   }
   const cd = countdownQuery(query);
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
+  const tr = translateQuery(query);
+  if (tr) {
+    el.innerHTML = `<section class="card ai-card"><h2>🌐 Translate to ${esc(translateTitle(tr.langName))}</h2><p class="muted">Translating “${esc(tr.text)}”…</p></section>`;
+    fetchTranslation(tr, myTrSeq);
+    return;
+  }
   const place = weatherPlace(query);
   if (place) {
     el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather</h2><p class="muted">Checking the weather in ${esc(place)}…</p></section>`;
@@ -1313,7 +1369,7 @@ function render(query) {
   if (!query.trim()) {
     document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
-    weatherSeq++; dictSeq++; currencySeq++; // Cancel any weather/dictionary/currency fetch still in flight.
+    weatherSeq++; dictSeq++; currencySeq++; translateSeq++; // Cancel any weather/dictionary/currency/translate fetch still in flight.
     ["ai", "instant", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
     // Clear any previous search from the address bar, in place.
@@ -1451,7 +1507,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");
