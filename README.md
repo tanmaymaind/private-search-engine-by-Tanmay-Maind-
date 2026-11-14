@@ -48,7 +48,8 @@ a keyboard shortcut: press `/` anywhere to jump to the search box, a
 removes the shareable link from the address bar in one tap (in-memory
 only, nothing stored), instant answers: type a calculation like
 “12 * 8”, “15% of 200” or “sqrt(16)”, or a conversion like “10 km in
-miles” or “100 c in f”, and the answer appears at the top, computed
+miles”, “100 c in f”, “5 acres in sqm” or “2 gb in mb” (length, mass,
+volume, time, speed, area and file size), and the answer appears at the top, computed
 entirely in your browser with a safe parser (never `eval()`), no API
 call and nothing stored, weather: type “weather in Mumbai”, “weather
 Tokyo” or “Mumbai weather” and the current conditions plus a 3-day
