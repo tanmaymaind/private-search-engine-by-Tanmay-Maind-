@@ -965,6 +965,55 @@ async function fetchWeather(place, mySeq) {
     el.innerHTML = `<section class="card ai-card"><h2>🌤️ Weather in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">${wc[0]} <b>${Math.round(cur.temperature_2m)}°C</b> <span style="font-size:16px">${esc(wc[1])}</span></p><p>Feels like ${Math.round(cur.apparent_temperature)}°C · Humidity ${cur.relative_humidity_2m}% · Wind ${Math.round(cur.wind_speed_10m)} km/h</p><p class="muted">Local time ${esc(String(cur.time).slice(11, 16))}</p><div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">${days}</div><p class="muted">Weather from Open-Meteo — free, no key, nothing stored.</p></section>`;
   } catch (e) { if (mySeq === weatherSeq) el.innerHTML = ""; }
 }
+// Air quality instant answer: "air quality in Mumbai", "AQI in Delhi",
+// "pollution in Pune" or "Mumbai air quality" shows the current US AQI
+// with its health category, plus PM2.5 and PM10, at the top, from
+// Open-Meteo's free geocoding + Air Quality APIs (no key, CORS
+// enabled). Same pattern as the weather card: nothing is sent anywhere
+// else and nothing is stored, and a sequence token cancels a slow
+// fetch if the user searches something else (or clears the box) before
+// it finishes.
+let aqiSeq = 0;
+const AQI_LEVELS = [
+  [50, "🟢", "Good", "Air quality is good — enjoy the outdoors."],
+  [100, "🟡", "Moderate", "Acceptable — unusually sensitive people should consider limiting long outdoor exertion."],
+  [150, "🟠", "Unhealthy for sensitive groups", "Sensitive groups should reduce long or heavy outdoor exertion."],
+  [200, "🔴", "Unhealthy", "Everyone may feel effects — reduce long or heavy outdoor exertion."],
+  [300, "🟣", "Very unhealthy", "Health alert — avoid long or heavy outdoor exertion."],
+  [Infinity, "🟤", "Hazardous", "Emergency conditions — avoid all outdoor physical activity."]
+];
+function aqiPlace(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!q) return null;
+  let m = /^(?:air\s+quality|aqi|air\s+pollution|pollution)(?:\s+in|\s+for)?\s+(.+)$/.exec(q);
+  if (m) return m[1].trim();
+  m = /^(.+?)\s+(?:air\s+quality|aqi|air\s+pollution|pollution)$/.exec(q);
+  if (m) return m[1].trim();
+  return null;
+}
+async function fetchAQI(place, mySeq) {
+  const el = document.getElementById("instant"); if (!el) return;
+  try {
+    const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`);
+    const gd = await g.json();
+    const loc = gd && gd.results && gd.results[0];
+    if (mySeq !== aqiSeq) return;
+    if (!loc) {
+      el.innerHTML = `<section class="card ai-card"><h2>🌫️ Air quality</h2><p>Couldn't find a place called “${esc(place)}” — try a city name, e.g. <b>air quality in Mumbai</b>.</p><p class="muted">Place search by Open-Meteo — free, no key, nothing stored.</p></section>`;
+      return;
+    }
+    const f = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${loc.latitude}&longitude=${loc.longitude}&current=us_aqi,pm2_5,pm10&timezone=auto`);
+    const fd = await f.json();
+    if (mySeq !== aqiSeq) return;
+    const cur = fd && fd.current;
+    if (!cur || cur.us_aqi == null) { el.innerHTML = ""; return; }
+    const level = AQI_LEVELS.find(l => cur.us_aqi <= l[0]) || AQI_LEVELS[AQI_LEVELS.length - 1];
+    const where = [loc.name, loc.admin1, loc.country].filter(Boolean).join(", ");
+    const pm25 = cur.pm2_5 == null ? "—" : Math.round(cur.pm2_5 * 10) / 10;
+    const pm10 = cur.pm10 == null ? "—" : Math.round(cur.pm10 * 10) / 10;
+    el.innerHTML = `<section class="card ai-card"><h2>🌫️ Air quality in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">${level[1]} <b>US AQI ${Math.round(cur.us_aqi)}</b> <span style="font-size:16px">${esc(level[2])}</span></p><p>${esc(level[3])}</p><p>PM2.5 ${pm25} µg/m³ · PM10 ${pm10} µg/m³</p><p class="muted">Local time ${esc(String(cur.time).slice(11, 16))}</p><p class="muted">Air quality from Open-Meteo — free, no key, nothing stored.</p></section>`;
+  } catch (e) { if (mySeq === aqiSeq) el.innerHTML = ""; }
+}
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
 // shows the word, its pronunciation (with audio), up to 3 definitions
@@ -1334,6 +1383,7 @@ function renderInstant(query) {
   const myDictSeq = ++dictSeq;
   const myCurrSeq = ++currencySeq;
   const myTrSeq = ++translateSeq;
+  const myAqiSeq = ++aqiSeq;
   const sync = instantAnswer(query);
   if (sync) { el.innerHTML = sync; return; }
   const tPlace = timePlace(query);
@@ -1359,6 +1409,12 @@ function renderInstant(query) {
     fetchWeather(place, mySeq);
     return;
   }
+  const aqiCity = aqiPlace(query);
+  if (aqiCity) {
+    el.innerHTML = `<section class="card ai-card"><h2>🌫️ Air quality</h2><p class="muted">Checking the air quality in ${esc(aqiCity)}…</p></section>`;
+    fetchAQI(aqiCity, myAqiSeq);
+    return;
+  }
   const word = dictWord(query);
   if (!word) { el.innerHTML = ""; return; }
   el.innerHTML = `<section class="card ai-card"><h2>📖 Dictionary</h2><p class="muted">Looking up “${esc(word)}”…</p></section>`;
@@ -1378,7 +1434,7 @@ function render(query) {
   if (!query.trim()) {
     document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
-    weatherSeq++; dictSeq++; currencySeq++; translateSeq++; // Cancel any weather/dictionary/currency/translate fetch still in flight.
+    weatherSeq++; dictSeq++; currencySeq++; translateSeq++; aqiSeq++; // Cancel any weather/dictionary/currency/translate/air-quality fetch still in flight.
     ["ai", "instant", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
     // Clear any previous search from the address bar, in place.
