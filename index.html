@@ -1014,6 +1014,52 @@ async function fetchAQI(place, mySeq) {
     el.innerHTML = `<section class="card ai-card"><h2>🌫️ Air quality in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">${level[1]} <b>US AQI ${Math.round(cur.us_aqi)}</b> <span style="font-size:16px">${esc(level[2])}</span></p><p>${esc(level[3])}</p><p>PM2.5 ${pm25} µg/m³ · PM10 ${pm10} µg/m³</p><p class="muted">Local time ${esc(String(cur.time).slice(11, 16))}</p><p class="muted">Air quality from Open-Meteo — free, no key, nothing stored.</p></section>`;
   } catch (e) { if (mySeq === aqiSeq) el.innerHTML = ""; }
 }
+// Sunrise & sunset instant answer: "sunrise in Mumbai", "sunset in
+// Delhi", "sunrise sunset in Pune", "Mumbai sunrise" or "what time is
+// sunrise in Tokyo" shows today's sunrise, sunset and day length at
+// the top, from Open-Meteo's free geocoding + forecast APIs (no key,
+// CORS enabled). Same pattern as the weather/AQI cards: nothing is
+// sent anywhere else and nothing is stored, and a sequence token
+// cancels a slow fetch if the user searches something else (or clears
+// the box) before it finishes.
+let sunSeq = 0;
+function sunPlace(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!q) return null;
+  let m = /^(?:sunrise\s+sunset|sunrise|sunset|sun\s+times?)(?:\s+time)?(?:\s+in|\s+for)?\s+(.+)$/.exec(q);
+  if (!m) m = /^(.+?)\s+(?:sunrise\s+sunset|sunrise|sunset|sun\s+times?)(?:\s+time)?$/.exec(q);
+  if (!m) m = /^(?:what\s+time\s+is|when\s+is|when\s+does)\s+(?:the\s+)?(?:sunrise|sunset|sun\s+rise|sun\s+set)(?:\s+in|\s+for)?\s+(.+)$/.exec(q);
+  if (!m) return null;
+  const place = m[1].trim();
+  // "sunrise in" alone leaves "in" as the place — a bare preposition is
+  // not a place (and the geocoder would match a village called "Īn").
+  if (!place || /^(in|for|the|at)$/.test(place)) return null;
+  return place;
+}
+async function fetchSun(place, mySeq) {
+  const el = document.getElementById("instant"); if (!el) return;
+  try {
+    const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`);
+    const gd = await g.json();
+    const loc = gd && gd.results && gd.results[0];
+    if (mySeq !== sunSeq) return;
+    if (!loc) {
+      el.innerHTML = `<section class="card ai-card"><h2>🌅 Sunrise &amp; sunset</h2><p>Couldn't find a place called “${esc(place)}” — try a city name, e.g. <b>sunrise in Mumbai</b>.</p><p class="muted">Place search by Open-Meteo — free, no key, nothing stored.</p></section>`;
+      return;
+    }
+    const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=sunrise,sunset,daylight_duration&forecast_days=1&timezone=auto`);
+    const fd = await f.json();
+    if (mySeq !== sunSeq) return;
+    const daily = fd && fd.daily;
+    if (!daily || !daily.sunrise || !daily.sunrise[0] || !daily.sunset || !daily.sunset[0]) { el.innerHTML = ""; return; }
+    const where = [loc.name, loc.admin1, loc.country].filter(Boolean).join(", ");
+    const rise = String(daily.sunrise[0]).slice(11, 16);
+    const set = String(daily.sunset[0]).slice(11, 16);
+    const mins = Math.round((daily.daylight_duration[0] || 0) / 60);
+    const dayLen = Math.floor(mins / 60) + "h " + (mins % 60) + "m";
+    el.innerHTML = `<section class="card ai-card"><h2>🌅 Sunrise &amp; sunset in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">🌅 <b>${esc(rise)}</b> &nbsp;·&nbsp; 🌇 <b>${esc(set)}</b></p><p>Day length ${esc(dayLen)} · Today, ${esc(String(daily.time[0]))}</p><p class="muted">Sun times from Open-Meteo — free, no key, nothing stored.</p></section>`;
+  } catch (e) { if (mySeq === sunSeq) el.innerHTML = ""; }
+}
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
 // shows the word, its pronunciation (with audio), up to 3 definitions
@@ -1384,6 +1430,7 @@ function renderInstant(query) {
   const myCurrSeq = ++currencySeq;
   const myTrSeq = ++translateSeq;
   const myAqiSeq = ++aqiSeq;
+  const mySunSeq = ++sunSeq;
   const sync = instantAnswer(query);
   if (sync) { el.innerHTML = sync; return; }
   const tPlace = timePlace(query);
@@ -1415,6 +1462,12 @@ function renderInstant(query) {
     fetchAQI(aqiCity, myAqiSeq);
     return;
   }
+  const sunCity = sunPlace(query);
+  if (sunCity) {
+    el.innerHTML = `<section class="card ai-card"><h2>🌅 Sunrise &amp; sunset</h2><p class="muted">Checking the sun times in ${esc(sunCity)}…</p></section>`;
+    fetchSun(sunCity, mySunSeq);
+    return;
+  }
   const word = dictWord(query);
   if (!word) { el.innerHTML = ""; return; }
   el.innerHTML = `<section class="card ai-card"><h2>📖 Dictionary</h2><p class="muted">Looking up “${esc(word)}”…</p></section>`;
@@ -1434,7 +1487,7 @@ function render(query) {
   if (!query.trim()) {
     document.body.classList.remove("has-results"); const trEl2 = document.getElementById("trending"); if (trEl2) trEl2.hidden = false; const nwEl2 = document.getElementById("latest-news"); if (nwEl2) nwEl2.hidden = false;
     resultsEl.innerHTML = "";
-    weatherSeq++; dictSeq++; currencySeq++; translateSeq++; aqiSeq++; // Cancel any weather/dictionary/currency/translate/air-quality fetch still in flight.
+    weatherSeq++; dictSeq++; currencySeq++; translateSeq++; aqiSeq++; sunSeq++; // Cancel any weather/dictionary/currency/translate/air-quality/sun-times fetch still in flight.
     ["ai", "instant", "stats", "paa", "related", "topstories", "empty", "knowledge", "web", "internet", "photos", "videos"].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ""; });
     copyBtn.hidden = true; copyStatus.textContent = "";
     // Clear any previous search from the address bar, in place.
@@ -1572,7 +1625,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");

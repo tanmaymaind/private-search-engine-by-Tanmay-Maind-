@@ -57,7 +57,11 @@ forecast appear at the top, from Open-Meteo’s free no-key API, nothing
 stored, air quality: type “air quality in Mumbai”, “AQI in Delhi”,
 “pollution in Pune” or “Mumbai air quality” and the current US AQI with
 its health category, plus PM2.5 and PM10, appear at the top, from
-Open-Meteo’s free no-key Air Quality API, nothing stored, dictionary: type “define serendipity”, “meaning of ephemeral”
+Open-Meteo’s free no-key Air Quality API, nothing stored, sunrise &
+sunset: type “sunrise in Mumbai”, “sunset in Delhi”, “sunrise sunset in
+Pune” or “Mumbai sunrise” and today’s sunrise, sunset and day length
+appear at the top, from Open-Meteo’s free no-key API, nothing stored,
+dictionary: type “define serendipity”, “meaning of ephemeral”
 or “what does ubiquitous mean” and the word, its pronunciation (with
 audio), definitions with examples and synonyms appear at the top, from
 the Free Dictionary API (free, no key, Wiktionary data), nothing
