@@ -61,6 +61,10 @@ Open-Meteo’s free no-key Air Quality API, nothing stored, sunrise &
 sunset: type “sunrise in Mumbai”, “sunset in Delhi”, “sunrise sunset in
 Pune” or “Mumbai sunrise” and today’s sunrise, sunset and day length
 appear at the top, from Open-Meteo’s free no-key API, nothing stored,
+moon phase: type “moon phase”, “moon tonight”, “full moon” or “when is
+the next full moon” and tonight’s moon phase, how lit it is and its
+age in days, plus the next full and new moon dates appear at the top,
+computed entirely in your browser with no API call and nothing stored,
 dictionary: type “define serendipity”, “meaning of ephemeral”
 or “what does ubiquitous mean” and the word, its pronunciation (with
 audio), definitions with examples and synonyms appear at the top, from

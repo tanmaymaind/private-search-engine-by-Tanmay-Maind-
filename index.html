@@ -1060,6 +1060,39 @@ async function fetchSun(place, mySeq) {
     el.innerHTML = `<section class="card ai-card"><h2>🌅 Sunrise &amp; sunset in ${esc(where)}</h2><p style="font-size:26px;margin:6px 0">🌅 <b>${esc(rise)}</b> &nbsp;·&nbsp; 🌇 <b>${esc(set)}</b></p><p>Day length ${esc(dayLen)} · Today, ${esc(String(daily.time[0]))}</p><p class="muted">Sun times from Open-Meteo — free, no key, nothing stored.</p></section>`;
   } catch (e) { if (mySeq === sunSeq) el.innerHTML = ""; }
 }
+// Moon phase instant answer: "moon phase", "moon tonight", "full moon"
+// or "when is the next full moon" shows tonight's moon phase, how lit
+// it is and its age in days, plus the next full and new moon dates.
+// Computed entirely in your browser from the synodic month
+// (29.530588853 days) and the known new moon of 6 January 2000,
+// 18:14 UTC — no API call, nothing sent anywhere, nothing stored.
+// Only triggers on those explicit patterns, so normal searches never
+// see this card.
+const MOON_SYNODIC_DAYS = 29.530588853;
+const MOON_KNOWN_NEW = Date.UTC(2000, 0, 6, 18, 14);
+const MOON_PHASES = [
+  ["🌑", "New Moon"], ["🌒", "Waxing Crescent"], ["🌓", "First Quarter"],
+  ["🌔", "Waxing Gibbous"], ["🌕", "Full Moon"], ["🌖", "Waning Gibbous"],
+  ["🌗", "Last Quarter"], ["🌘", "Waning Crescent"]
+];
+function moonPhaseAnswer(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return "";
+  if (!/^(?:moon\s+phase(?:\s+(?:today|tonight))?|what(?:'s| is) the moon(?:\s+phase)?(?:\s+(?:like|tonight|today))?|moon\s+(?:tonight|today)|(?:when\s+is\s+(?:the\s+)?)?next\s+(?:full|new)\s+moon|(?:full|new)\s+moon)$/.test(q)) return "";
+  const now = new Date();
+  let age = ((now.getTime() - MOON_KNOWN_NEW) / 86400000) % MOON_SYNODIC_DAYS;
+  if (age < 0) age += MOON_SYNODIC_DAYS;
+  const illum = Math.round((1 - Math.cos(2 * Math.PI * age / MOON_SYNODIC_DAYS)) / 2 * 100);
+  const phase = MOON_PHASES[Math.floor(((age / MOON_SYNODIC_DAYS) * 8 + 0.5)) % 8];
+  const fmtDay = d => d.toLocaleDateString("en", { weekday: "short", day: "numeric", month: "short" });
+  const daysToFull = (MOON_SYNODIC_DAYS / 2 - age + MOON_SYNODIC_DAYS) % MOON_SYNODIC_DAYS;
+  const daysToNew = (MOON_SYNODIC_DAYS - age) % MOON_SYNODIC_DAYS;
+  const fullDate = new Date(now.getTime() + daysToFull * 86400000);
+  const newDate = new Date(now.getTime() + daysToNew * 86400000);
+  const fullLabel = fullDate.toDateString() === now.toDateString() ? "today" : "on " + fmtDay(fullDate);
+  const newLabel = age < 1 ? "today" : (newDate.toDateString() === now.toDateString() ? "today" : "on " + fmtDay(newDate));
+  return `<section class="card ai-card"><h2>🌕 Moon phase</h2><p style="font-size:26px;margin:6px 0">${phase[0]} <b>${esc(phase[1])}</b></p><p>${illum}% illuminated · Moon age ${Math.round(age * 10) / 10} days</p><p>Next full moon ${esc(fullLabel)} · Next new moon ${esc(newLabel)}</p><p class="muted">Moon phase computed in your browser from the lunar cycle — no API, nothing stored.</p></section>`;
+}
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
 // shows the word, its pronunciation (with audio), up to 3 definitions
@@ -1444,6 +1477,8 @@ function renderInstant(query) {
   }
   const cd = countdownQuery(query);
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
+  const moon = moonPhaseAnswer(query);
+  if (moon) { el.innerHTML = moon; return; }
   const tr = translateQuery(query);
   if (tr) {
     el.innerHTML = `<section class="card ai-card"><h2>🌐 Translate to ${esc(translateTitle(tr.langName))}</h2><p class="muted">Translating “${esc(tr.text)}”…</p></section>`;
@@ -1625,7 +1660,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");
