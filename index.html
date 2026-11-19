@@ -138,6 +138,8 @@
   .news-card .news-meta { display: block; padding: 0 12px 10px; font-size: 12px; color: var(--muted); }
   .ai-card { border: 2px solid transparent; background: linear-gradient(var(--surface-solid), var(--surface-solid)) padding-box, var(--accent) border-box; }
   .ai-card .cite { font-size: 12px; vertical-align: super; }
+  .random-result { font-size: 26px; margin: 6px 0; }
+  .random-result .dice-face { font-size: 40px; }
   .skeleton { height: 18px; border-radius: 8px; margin: 10px 0; background: linear-gradient(90deg, rgba(148,163,184,.18) 25%, rgba(148,163,184,.38) 50%, rgba(148,163,184,.18) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite linear; }
   .skeleton.tall { height: 90px; }
   .results-layout { display: block; }
@@ -1093,6 +1095,58 @@ function moonPhaseAnswer(query) {
   const newLabel = age < 1 ? "today" : (newDate.toDateString() === now.toDateString() ? "today" : "on " + fmtDay(newDate));
   return `<section class="card ai-card"><h2>🌕 Moon phase</h2><p style="font-size:26px;margin:6px 0">${phase[0]} <b>${esc(phase[1])}</b></p><p>${illum}% illuminated · Moon age ${Math.round(age * 10) / 10} days</p><p>Next full moon ${esc(fullLabel)} · Next new moon ${esc(newLabel)}</p><p class="muted">Moon phase computed in your browser from the lunar cycle — no API, nothing stored.</p></section>`;
 }
+// Random instant answer: "roll a dice", "flip a coin" or "random number
+// between 1 and 100" shows a fresh random result at the top. Computed
+// entirely in your browser with Math.random — no API call, nothing sent
+// anywhere, nothing stored. The last random query is kept in a window
+// variable (in-memory only, gone when the page closes) so the
+// "Roll again" button can re-roll without a new search. Only triggers
+// on those explicit patterns, so normal searches never see this card.
+const DICE_FACES = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+function randomAnswer(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return "";
+  let again = "Roll again", title = "", body = "";
+  if (/^(?:flip|toss)\s+a\s+coin$/.test(q) || q === "heads or tails") {
+    const heads = Math.random() < 0.5;
+    title = "🪙 Coin flip"; again = "Flip again";
+    body = `<p class="random-result"><b>${heads ? "Heads" : "Tails"}</b></p>`;
+  } else if (/^(?:roll|throw)\s+(?:a\s+|the\s+)?(?:dice|die)$/.test(q)) {
+    const n = 1 + Math.floor(Math.random() * 6);
+    title = "🎲 Dice roll"; again = "Roll again";
+    body = `<p class="random-result"><span class="dice-face">${DICE_FACES[n - 1]}</span> <b>${n}</b></p>`;
+  } else if (/^(?:roll|throw)\s+([2-6])\s+dice$/.test(q)) {
+    const count = parseInt(q.match(/^(?:roll|throw)\s+([2-6])\s+dice$/)[1], 10);
+    const rolls = [];
+    for (let i = 0; i < count; i++) rolls.push(1 + Math.floor(Math.random() * 6));
+    const total = rolls.reduce((a, b) => a + b, 0);
+    title = "🎲 Dice roll"; again = "Roll again";
+    body = `<p class="random-result">${rolls.map(n => `<span class="dice-face">${DICE_FACES[n - 1]}</span>`).join(" ")} <b>Total ${total}</b></p>`;
+  } else if (/^(?:roll|throw)\s+(?:a\s+)?d([1-9][0-9]{0,2})$/.test(q)) {
+    const sides = parseInt(q.match(/^(?:roll|throw)\s+(?:a\s+)?d([1-9][0-9]{0,2})$/)[1], 10);
+    if (sides < 2 || sides > 100) return "";
+    const n = 1 + Math.floor(Math.random() * sides);
+    title = "🎲 Dice roll"; again = "Roll again";
+    body = `<p class="random-result">Rolled a d${sides}: <b>${n}</b></p>`;
+  } else {
+    let m = /^(?:pick\s+)?(?:a\s+)?random\s+number\s+(?:between|from)\s+(-?\d+)\s+(?:and|to)\s+(-?\d+)$/.exec(q);
+    if (!m) m = /^(?:pick\s+)?(?:a\s+)?random\s+number\s+(-?\d+)\s*(?:-|to)\s*(-?\d+)$/.exec(q);
+    if (!m) return "";
+    let lo = parseInt(m[1], 10), hi = parseInt(m[2], 10);
+    if (!isFinite(lo) || !isFinite(hi) || Math.abs(lo) > 1e9 || Math.abs(hi) > 1e9 || lo === hi || Math.abs(hi - lo) > 1e9) return "";
+    if (lo > hi) { const t = lo; lo = hi; hi = t; }
+    const n = lo + Math.floor(Math.random() * (hi - lo + 1));
+    title = "🔢 Random number"; again = "Pick again";
+    body = `<p class="random-result">Between ${esc(String(lo))} and ${esc(String(hi))}: <b>${n}</b></p>`;
+  }
+  window.novaraRandomQuery = query;
+  return `<section class="card ai-card"><h2>${title}</h2>${body}<p><button class="clear-btn" type="button" onclick="rerollRandom()">🎲 ${again}</button></p><p class="muted">Rolled in your browser — no API, nothing stored.</p></section>`;
+}
+function rerollRandom() {
+  const el = document.getElementById("instant"); if (!el || !window.novaraRandomQuery) return;
+  const html = randomAnswer(window.novaraRandomQuery);
+  if (html) el.innerHTML = html;
+}
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
 // shows the word, its pronunciation (with audio), up to 3 definitions
@@ -1479,6 +1533,8 @@ function renderInstant(query) {
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
   const moon = moonPhaseAnswer(query);
   if (moon) { el.innerHTML = moon; return; }
+  const rnd = randomAnswer(query);
+  if (rnd) { el.innerHTML = rnd; return; }
   const tr = translateQuery(query);
   if (tr) {
     el.innerHTML = `<section class="card ai-card"><h2>🌐 Translate to ${esc(translateTitle(tr.langName))}</h2><p class="muted">Translating “${esc(tr.text)}”…</p></section>`;
@@ -1660,7 +1716,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");

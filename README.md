@@ -65,6 +65,10 @@ moon phase: type “moon phase”, “moon tonight”, “full moon” or “whe
 the next full moon” and tonight’s moon phase, how lit it is and its
 age in days, plus the next full and new moon dates appear at the top,
 computed entirely in your browser with no API call and nothing stored,
+random: type “roll a dice”, “roll 2 dice”, “roll a d20”, “flip a coin”
+or “random number between 1 and 100” and a fresh random result appears
+at the top, with a Roll again button to re-roll in place, computed
+entirely in your browser with no API call and nothing stored,
 dictionary: type “define serendipity”, “meaning of ephemeral”
 or “what does ubiquitous mean” and the word, its pronunciation (with
 audio), definitions with examples and synonyms appear at the top, from
