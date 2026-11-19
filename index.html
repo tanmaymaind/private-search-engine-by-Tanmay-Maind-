@@ -1147,6 +1147,61 @@ function rerollRandom() {
   const html = randomAnswer(window.novaraRandomQuery);
   if (html) el.innerHTML = html;
 }
+// Password generator instant answer: "generate password", "random password",
+// "create a strong password", "new password", "generate password 16" or
+// "generate a 20 character password" shows a fresh strong password at the
+// top, with a Copy button. Generated entirely in your browser with
+// crypto.getRandomValues — no API call, nothing sent anywhere, nothing
+// stored. Ambiguous characters (l, I, 1, O, 0) are left out so the password
+// is easy to read and type, and every password has at least one lowercase
+// letter, one uppercase letter, one digit and one symbol. Only triggers
+// on those explicit patterns, so normal searches never see this card.
+const PASSWORD_LOWER = "abcdefghijkmnopqrstuvwxyz";
+const PASSWORD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const PASSWORD_DIGITS = "23456789";
+const PASSWORD_SYMBOLS = "!@#$%^&*()-_=+";
+function passwordRandomInt(n) {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const a = new Uint32Array(1);
+    window.crypto.getRandomValues(a);
+    return a[0] % n;
+  }
+  return Math.floor(Math.random() * n);
+}
+function makePassword(len) {
+  const all = PASSWORD_LOWER + PASSWORD_UPPER + PASSWORD_DIGITS + PASSWORD_SYMBOLS;
+  const chars = [PASSWORD_LOWER[passwordRandomInt(PASSWORD_LOWER.length)],
+    PASSWORD_UPPER[passwordRandomInt(PASSWORD_UPPER.length)],
+    PASSWORD_DIGITS[passwordRandomInt(PASSWORD_DIGITS.length)],
+    PASSWORD_SYMBOLS[passwordRandomInt(PASSWORD_SYMBOLS.length)]];
+  for (let i = chars.length; i < len; i++) chars.push(all[passwordRandomInt(all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = passwordRandomInt(i + 1);
+    const t = chars[i]; chars[i] = chars[j]; chars[j] = t;
+  }
+  return chars.join("");
+}
+function passwordLength(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q || !/password/.test(q)) return null;
+  let m = /^(\d+)\s*(?:-| )?(?:character|char)\s+password$/.exec(q);
+  if (m) return parseInt(m[1], 10);
+  m = /^(?:generate|create|make|get|give me)\s+(?:a\s+|an\s+)?(?:strong\s+|secure\s+|random\s+|new\s+)?passwords?(?:\s+(\d+))?$/.exec(q);
+  if (m) return m[1] ? parseInt(m[1], 10) : 16;
+  m = /^(?:generate|create|make|get)\s+(?:a\s+|an\s+)?(\d+)\s*(?:-| )?(?:character|char)?\s*passwords?$/.exec(q);
+  if (m) return parseInt(m[1], 10);
+  if (/^(?:random|strong|secure|new)\s+passwords?$/.test(q)) return 16;
+  if (/^password\s+generator$/.test(q)) return 16;
+  return null;
+}
+function passwordAnswer(query) {
+  const len = passwordLength(query);
+  if (len === null || len < 8 || len > 64) return "";
+  const pw = makePassword(len);
+  const bits = Math.round(len * Math.log2(70));
+  window.novaraPasswordQuery = query;
+  return `<section class="card ai-card"><h2>🔑 Password generator</h2><p style="font-size:22px;margin:6px 0;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all"><b>${esc(pw)}</b></p><p>${len} characters · ~${bits} bits of entropy</p><p><button class="clear-btn" type="button" data-v="${esc(pw)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Password copied.'));">📋 Copy password</button></p><p class="muted">Generated in your browser with crypto.getRandomValues — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
 // shows the word, its pronunciation (with audio), up to 3 definitions
@@ -1535,6 +1590,8 @@ function renderInstant(query) {
   if (moon) { el.innerHTML = moon; return; }
   const rnd = randomAnswer(query);
   if (rnd) { el.innerHTML = rnd; return; }
+  const pw = passwordAnswer(query);
+  if (pw) { el.innerHTML = pw; return; }
   const tr = translateQuery(query);
   if (tr) {
     el.innerHTML = `<section class="card ai-card"><h2>🌐 Translate to ${esc(translateTitle(tr.langName))}</h2><p class="muted">Translating “${esc(tr.text)}”…</p></section>`;
