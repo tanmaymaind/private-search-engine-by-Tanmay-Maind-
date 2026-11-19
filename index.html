@@ -140,6 +140,7 @@
   .ai-card .cite { font-size: 12px; vertical-align: super; }
   .random-result { font-size: 26px; margin: 6px 0; }
   .random-result .dice-face { font-size: 40px; }
+  .password-result { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 22px; margin: 6px 0; word-break: break-all; letter-spacing: 1px; }
   .skeleton { height: 18px; border-radius: 8px; margin: 10px 0; background: linear-gradient(90deg, rgba(148,163,184,.18) 25%, rgba(148,163,184,.38) 50%, rgba(148,163,184,.18) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite linear; }
   .skeleton.tall { height: 90px; }
   .results-layout { display: block; }
@@ -1199,8 +1200,9 @@ function passwordAnswer(query) {
   if (len === null || len < 8 || len > 64) return "";
   const pw = makePassword(len);
   const bits = Math.round(len * Math.log2(70));
+  const strength = bits < 50 ? "fair" : bits < 80 ? "good" : "strong";
   window.novaraPasswordQuery = query;
-  return `<section class="card ai-card"><h2>🔑 Password generator</h2><p style="font-size:22px;margin:6px 0;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all"><b>${esc(pw)}</b></p><p>${len} characters · ~${bits} bits of entropy</p><p><button class="clear-btn" type="button" data-v="${esc(pw)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Password copied.'));">📋 Copy password</button></p><p class="muted">Generated in your browser with crypto.getRandomValues — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  return `<section class="card ai-card"><h2>🔑 Password generator</h2><p class="password-result"><b>${esc(pw)}</b></p><p>${len} characters · ~${bits} bits of entropy · <b>${strength}</b></p><p><button class="clear-btn" type="button" data-v="${esc(pw)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Password copied.'));">📋 Copy password</button></p><p class="muted">Generated in your browser with crypto.getRandomValues — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
