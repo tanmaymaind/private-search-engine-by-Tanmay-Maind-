@@ -69,6 +69,12 @@ random: type “roll a dice”, “roll 2 dice”, “roll a d20”, “flip a c
 or “random number between 1 and 100” and a fresh random result appears
 at the top, with a Roll again button to re-roll in place, computed
 entirely in your browser with no API call and nothing stored,
+password generator: type “generate password”, “random password”,
+“create a strong password” or “generate password 16” and a fresh
+strong password (8–64 characters, your choice) appears at the top,
+with a Copy button and a Generate another button, generated entirely
+in your browser with crypto.getRandomValues, no API call and nothing
+stored,
 dictionary: type “define serendipity”, “meaning of ephemeral”
 or “what does ubiquitous mean” and the word, its pronunciation (with
 audio), definitions with examples and synonyms appear at the top, from
