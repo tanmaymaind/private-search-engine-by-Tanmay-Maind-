@@ -1202,7 +1202,12 @@ function passwordAnswer(query) {
   const bits = Math.round(len * Math.log2(70));
   const strength = bits < 50 ? "fair" : bits < 80 ? "good" : "strong";
   window.novaraPasswordQuery = query;
-  return `<section class="card ai-card"><h2>🔑 Password generator</h2><p class="password-result"><b>${esc(pw)}</b></p><p>${len} characters · ~${bits} bits of entropy · <b>${strength}</b></p><p><button class="clear-btn" type="button" data-v="${esc(pw)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Password copied.'));">📋 Copy password</button></p><p class="muted">Generated in your browser with crypto.getRandomValues — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  return `<section class="card ai-card"><h2>🔑 Password generator</h2><p class="password-result"><b>${esc(pw)}</b></p><p>${len} characters · ~${bits} bits of entropy · <b>${strength}</b></p><p><button class="clear-btn" type="button" data-v="${esc(pw)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Password copied.'));">📋 Copy password</button> <button class="clear-btn" type="button" onclick="regeneratePassword()">🔄 Generate another</button></p><p class="muted">Generated in your browser with crypto.getRandomValues — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
+function regeneratePassword() {
+  const el = document.getElementById("instant"); if (!el || !window.novaraPasswordQuery) return;
+  const html = passwordAnswer(window.novaraPasswordQuery);
+  if (html) el.innerHTML = html;
 }
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
