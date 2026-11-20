@@ -1216,6 +1216,8 @@ function regeneratePassword() {
 // "countdown 90 seconds", "1 hour 30 minutes timer" or just "timer"
 // (a 5-minute timer) shows a live countdown at the top with Start/Pause
 // and Reset buttons, and a short beep plus "Time's up!" when it finishes.
+// "stopwatch" or "start stopwatch" shows a count-up stopwatch with the
+// same Start/Pause and Reset buttons.
 // Runs entirely in your browser with setInterval and Date.now — no API
 // call, nothing sent anywhere, nothing stored: the timer lives only in
 // window variables (in-memory, gone when the page closes) and a new
@@ -1223,7 +1225,7 @@ function regeneratePassword() {
 // triggers on those explicit patterns, so normal searches never see
 // this card. Durations from 1 second to 24 hours.
 let novaraTimerId = null;
-let novaraTimer = null; // {mode:"countdown", total, remaining, running, endAt}
+let novaraTimer = null; // countdown: {mode:"countdown", total, remaining, running, endAt}; stopwatch: {mode:"stopwatch", elapsedBase, startedAt, running}
 function timerParseDuration(text) {
   let total = 0, found = false;
   const re = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)\b/g;
@@ -1253,6 +1255,7 @@ function timerFmt(total) {
 function timerQuery(query) {
   const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
   if (!q) return null;
+  if (/^(?:start\s+(?:a\s+)?)?stopwatch$/.test(q)) return { mode: "stopwatch" };
   let rest = null, m;
   m = /^(?:set|start|create|make)\s+(?:a\s+)?(?:countdown\s+)?timer(?:\s+for)?\s*(.*)$/.exec(q);
   if (m) rest = m[1];
@@ -1284,6 +1287,11 @@ function timerBeep() {
 function timerPaint() {
   const el = document.getElementById("novara-timer-display");
   if (!el || !novaraTimer) return;
+  if (novaraTimer.mode === "stopwatch") {
+    const e = novaraTimer.running ? novaraTimer.elapsedBase + (Date.now() - novaraTimer.startedAt) / 1000 : novaraTimer.elapsedBase;
+    el.textContent = timerFmt(e);
+    return;
+  }
   const left = novaraTimer.running ? Math.max(0, (novaraTimer.endAt - Date.now()) / 1000) : novaraTimer.remaining;
   el.textContent = timerFmt(left);
   if (novaraTimer.running && left <= 0) timerFinish();
@@ -1304,13 +1312,17 @@ function timerToggle() {
   if (!novaraTimer) return;
   const btn = document.getElementById("novara-timer-toggle");
   if (novaraTimer.running) {
-    novaraTimer.remaining = Math.max(0, (novaraTimer.endAt - Date.now()) / 1000);
+    if (novaraTimer.mode === "stopwatch") novaraTimer.elapsedBase += (Date.now() - novaraTimer.startedAt) / 1000;
+    else novaraTimer.remaining = Math.max(0, (novaraTimer.endAt - Date.now()) / 1000);
     novaraTimer.running = false;
     if (novaraTimerId) { clearInterval(novaraTimerId); novaraTimerId = null; }
     if (btn) btn.textContent = "▶ Resume";
   } else {
-    if (novaraTimer.remaining <= 0) novaraTimer.remaining = novaraTimer.total;
-    novaraTimer.endAt = Date.now() + novaraTimer.remaining * 1000;
+    if (novaraTimer.mode === "stopwatch") novaraTimer.startedAt = Date.now();
+    else {
+      if (novaraTimer.remaining <= 0) novaraTimer.remaining = novaraTimer.total;
+      novaraTimer.endAt = Date.now() + novaraTimer.remaining * 1000;
+    }
     novaraTimer.running = true;
     const disp = document.getElementById("novara-timer-display");
     if (disp) disp.classList.remove("done");
@@ -1325,10 +1337,11 @@ function timerToggle() {
 function timerReset() {
   if (!novaraTimer) return;
   if (novaraTimerId) { clearInterval(novaraTimerId); novaraTimerId = null; }
-  novaraTimer.remaining = novaraTimer.total;
+  if (novaraTimer.mode === "stopwatch") novaraTimer.elapsedBase = 0;
+  else novaraTimer.remaining = novaraTimer.total;
   novaraTimer.running = false;
   const disp = document.getElementById("novara-timer-display");
-  if (disp) { disp.classList.remove("done"); disp.textContent = timerFmt(novaraTimer.total); }
+  if (disp) { disp.classList.remove("done"); disp.textContent = timerFmt(novaraTimer.mode === "stopwatch" ? 0 : novaraTimer.total); }
   const msg = document.getElementById("novara-timer-status");
   if (msg) msg.textContent = "";
   const btn = document.getElementById("novara-timer-toggle");
@@ -1337,6 +1350,10 @@ function timerReset() {
 function timerAnswer(query) {
   const t = timerQuery(query);
   if (!t) return "";
+  if (t.mode === "stopwatch") {
+    novaraTimer = { mode: "stopwatch", elapsedBase: 0, startedAt: 0, running: false };
+    return `<section class="card ai-card"><h2>⏱️ Stopwatch</h2><p class="timer-display" id="novara-timer-display">00:00</p><p id="novara-timer-status"></p><p><button class="clear-btn" type="button" id="novara-timer-toggle" onclick="timerToggle()">▶ Start</button> <button class="clear-btn" type="button" onclick="timerReset()">↺ Reset</button></p><p class="muted">Counts up in your browser — no API, nothing stored. Starting a new search stops it.</p></section>`;
+  }
   novaraTimer = { mode: "countdown", total: t.seconds, remaining: t.seconds, running: false, endAt: 0 };
   return `<section class="card ai-card"><h2>⏱️ Timer</h2><p class="timer-display" id="novara-timer-display">${timerFmt(t.seconds)}</p><p id="novara-timer-status"></p><p><button class="clear-btn" type="button" id="novara-timer-toggle" onclick="timerToggle()">▶ Start</button> <button class="clear-btn" type="button" onclick="timerReset()">↺ Reset</button></p><p class="muted">Counts down in your browser — no API, nothing stored. Starting a new search stops it.</p></section>`;
 }
