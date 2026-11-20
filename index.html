@@ -141,6 +141,9 @@
   .random-result { font-size: 26px; margin: 6px 0; }
   .random-result .dice-face { font-size: 40px; }
   .password-result { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 22px; margin: 6px 0; word-break: break-all; letter-spacing: 1px; }
+  .timer-display { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 44px; font-weight: 700; margin: 6px 0; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+  .timer-display.done { color: #f87171; }
+  #novara-timer-status { font-size: 20px; font-weight: 600; margin: 4px 0; min-height: 24px; }
   .skeleton { height: 18px; border-radius: 8px; margin: 10px 0; background: linear-gradient(90deg, rgba(148,163,184,.18) 25%, rgba(148,163,184,.38) 50%, rgba(148,163,184,.18) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite linear; }
   .skeleton.tall { height: 90px; }
   .results-layout { display: block; }
@@ -1335,7 +1338,7 @@ function timerAnswer(query) {
   const t = timerQuery(query);
   if (!t) return "";
   novaraTimer = { mode: "countdown", total: t.seconds, remaining: t.seconds, running: false, endAt: 0 };
-  return `<section class="card ai-card"><h2>⏱️ Timer</h2><p id="novara-timer-display" style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 44px; margin: 6px 0">${timerFmt(t.seconds)}</p><p id="novara-timer-status"></p><p><button class="clear-btn" type="button" id="novara-timer-toggle" onclick="timerToggle()">▶ Start</button> <button class="clear-btn" type="button" onclick="timerReset()">↺ Reset</button></p><p class="muted">Counts down in your browser — no API, nothing stored. Starting a new search stops it.</p></section>`;
+  return `<section class="card ai-card"><h2>⏱️ Timer</h2><p class="timer-display" id="novara-timer-display">${timerFmt(t.seconds)}</p><p id="novara-timer-status"></p><p><button class="clear-btn" type="button" id="novara-timer-toggle" onclick="timerToggle()">▶ Start</button> <button class="clear-btn" type="button" onclick="timerReset()">↺ Reset</button></p><p class="muted">Counts down in your browser — no API, nothing stored. Starting a new search stops it.</p></section>`;
 }
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
