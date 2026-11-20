@@ -94,7 +94,12 @@ stored, translate: type “translate hello to Hindi”, “translate good
 morning into Marathi” or “how do you say thank you in Spanish” and the
 translation appears at the top, from MyMemory’s free no-key API
 (English to Hindi, Marathi, Spanish, French, German, Japanese and 20+
-more languages), nothing stored, and shareable
+more languages), nothing stored, timer & stopwatch: type “timer 5
+minutes”, “set a timer for 10 minutes”, “countdown 90 seconds”, “1 hour
+30 minutes timer” or “stopwatch” and a live countdown (with Start/Pause
+and Reset buttons, and a beep when time is up) or a count-up stopwatch
+appears at the top, computed entirely in your browser with no API call
+and nothing stored, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.
