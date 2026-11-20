@@ -1209,6 +1209,134 @@ function regeneratePassword() {
   const html = passwordAnswer(window.novaraPasswordQuery);
   if (html) el.innerHTML = html;
 }
+// Timer instant answer: "timer 5 minutes", "set a timer for 10 minutes",
+// "countdown 90 seconds", "1 hour 30 minutes timer" or just "timer"
+// (a 5-minute timer) shows a live countdown at the top with Start/Pause
+// and Reset buttons, and a short beep plus "Time's up!" when it finishes.
+// Runs entirely in your browser with setInterval and Date.now — no API
+// call, nothing sent anywhere, nothing stored: the timer lives only in
+// window variables (in-memory, gone when the page closes) and a new
+// search stops it (renderInstant clears the interval first). Only
+// triggers on those explicit patterns, so normal searches never see
+// this card. Durations from 1 second to 24 hours.
+let novaraTimerId = null;
+let novaraTimer = null; // {mode:"countdown", total, remaining, running, endAt}
+function timerParseDuration(text) {
+  let total = 0, found = false;
+  const re = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)\b/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    found = true;
+    const v = parseFloat(m[1]), u = m[2];
+    if (/^h/.test(u)) total += v * 3600;
+    else if (u === "m" || /^min/.test(u)) total += v * 60;
+    else total += v;
+  }
+  if (!found) {
+    const bare = /^\s*(\d+(?:\.\d+)?)\s*$/.exec(text);
+    if (bare) { total = parseFloat(bare[1]) * 60; found = true; }
+  }
+  if (!found) return null;
+  total = Math.round(total);
+  if (total < 1 || total > 86400) return null;
+  return total;
+}
+function timerFmt(total) {
+  total = Math.max(0, Math.round(total));
+  const h = Math.floor(total / 3600), m = Math.floor(total % 3600 / 60), s = total % 60;
+  const p = n => String(n).padStart(2, "0");
+  return h > 0 ? p(h) + ":" + p(m) + ":" + p(s) : p(m) + ":" + p(s);
+}
+function timerQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  let rest = null, m;
+  m = /^(?:set|start|create|make)\s+(?:a\s+)?(?:countdown\s+)?timer(?:\s+for)?\s*(.*)$/.exec(q);
+  if (m) rest = m[1];
+  if (rest === null) { m = /^(?:countdown|count\s+down)\s+(?:timer\s+)?(?:for\s+)?(.+)$/.exec(q); if (m) rest = m[1]; }
+  if (rest === null) { m = /^(?:a\s+)?timer\s*(?:for\s+)?(.*)$/.exec(q); if (m) rest = m[1]; }
+  if (rest === null) { m = /^(.+)\s+timer$/.exec(q); if (m) rest = m[1]; }
+  if (rest === null) return null;
+  rest = rest.trim();
+  if (!rest) return { mode: "countdown", seconds: 300 };
+  const seconds = timerParseDuration(rest);
+  if (seconds === null) return null;
+  return { mode: "countdown", seconds };
+}
+function timerBeep() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    [0, 0.35, 0.7].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.2, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.32);
+    });
+  } catch (e) { /* no sound — the visual "Time's up!" still shows */ }
+}
+function timerPaint() {
+  const el = document.getElementById("novara-timer-display");
+  if (!el || !novaraTimer) return;
+  const left = novaraTimer.running ? Math.max(0, (novaraTimer.endAt - Date.now()) / 1000) : novaraTimer.remaining;
+  el.textContent = timerFmt(left);
+  if (novaraTimer.running && left <= 0) timerFinish();
+}
+function timerFinish() {
+  if (novaraTimerId) { clearInterval(novaraTimerId); novaraTimerId = null; }
+  if (!novaraTimer) return;
+  novaraTimer.running = false; novaraTimer.remaining = 0;
+  const el = document.getElementById("novara-timer-display");
+  if (el) { el.textContent = "00:00"; el.classList.add("done"); }
+  const msg = document.getElementById("novara-timer-status");
+  if (msg) msg.textContent = "⏰ Time's up!";
+  const btn = document.getElementById("novara-timer-toggle");
+  if (btn) btn.textContent = "▶ Start";
+  timerBeep();
+}
+function timerToggle() {
+  if (!novaraTimer) return;
+  const btn = document.getElementById("novara-timer-toggle");
+  if (novaraTimer.running) {
+    novaraTimer.remaining = Math.max(0, (novaraTimer.endAt - Date.now()) / 1000);
+    novaraTimer.running = false;
+    if (novaraTimerId) { clearInterval(novaraTimerId); novaraTimerId = null; }
+    if (btn) btn.textContent = "▶ Resume";
+  } else {
+    if (novaraTimer.remaining <= 0) novaraTimer.remaining = novaraTimer.total;
+    novaraTimer.endAt = Date.now() + novaraTimer.remaining * 1000;
+    novaraTimer.running = true;
+    const disp = document.getElementById("novara-timer-display");
+    if (disp) disp.classList.remove("done");
+    const msg = document.getElementById("novara-timer-status");
+    if (msg) msg.textContent = "";
+    if (btn) btn.textContent = "⏸ Pause";
+    if (novaraTimerId) clearInterval(novaraTimerId);
+    novaraTimerId = setInterval(timerPaint, 250);
+    timerPaint();
+  }
+}
+function timerReset() {
+  if (!novaraTimer) return;
+  if (novaraTimerId) { clearInterval(novaraTimerId); novaraTimerId = null; }
+  novaraTimer.remaining = novaraTimer.total;
+  novaraTimer.running = false;
+  const disp = document.getElementById("novara-timer-display");
+  if (disp) { disp.classList.remove("done"); disp.textContent = timerFmt(novaraTimer.total); }
+  const msg = document.getElementById("novara-timer-status");
+  if (msg) msg.textContent = "";
+  const btn = document.getElementById("novara-timer-toggle");
+  if (btn) btn.textContent = "▶ Start";
+}
+function timerAnswer(query) {
+  const t = timerQuery(query);
+  if (!t) return "";
+  novaraTimer = { mode: "countdown", total: t.seconds, remaining: t.seconds, running: false, endAt: 0 };
+  return `<section class="card ai-card"><h2>⏱️ Timer</h2><p id="novara-timer-display" style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 44px; margin: 6px 0">${timerFmt(t.seconds)}</p><p id="novara-timer-status"></p><p><button class="clear-btn" type="button" id="novara-timer-toggle" onclick="timerToggle()">▶ Start</button> <button class="clear-btn" type="button" onclick="timerReset()">↺ Reset</button></p><p class="muted">Counts down in your browser — no API, nothing stored. Starting a new search stops it.</p></section>`;
+}
 // Dictionary instant answer: "define serendipity", "meaning of
 // ephemeral", "what does ubiquitous mean" or "definition of karma"
 // shows the word, its pronunciation (with audio), up to 3 definitions
@@ -1574,6 +1702,8 @@ async function fetchTranslation(parsed, mySeq) {
 }
 function renderInstant(query) {
   const el = document.getElementById("instant"); if (!el) return;
+  // A running timer stops when a new search starts.
+  if (typeof novaraTimerId !== "undefined" && novaraTimerId) { clearInterval(novaraTimerId); novaraTimerId = null; }
   const mySeq = ++weatherSeq;
   const myDictSeq = ++dictSeq;
   const myCurrSeq = ++currencySeq;
@@ -1593,6 +1723,8 @@ function renderInstant(query) {
   }
   const cd = countdownQuery(query);
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
+  const tm = timerAnswer(query);
+  if (tm) { el.innerHTML = tm; return; }
   const moon = moonPhaseAnswer(query);
   if (moon) { el.innerHTML = moon; return; }
   const rnd = randomAnswer(query);
