@@ -1679,9 +1679,9 @@ function countdownAnswer(parsed) {
 // explicit patterns, so normal searches never see this card. Dates may
 // be typed as "15 August 2000", "August 15, 2000", "2000-08-15" or
 // day-first "15/08/2000". Reuses COUNTDOWN_MONTHS and countdownDate
-// for parsing and validation. A birth date in the future, or one the
-// page cannot work out, falls through to a normal search instead of
-// guessing.
+// for parsing and validation. A birth date in the future shows a
+// friendly note instead of a negative age; one the page cannot work
+// out falls through to a normal search instead of guessing.
 function ageParseDate(text) {
   const t = (text || "").trim().toLowerCase().replace(/\s+/g, " ");
   if (!t) return null;
@@ -1704,7 +1704,7 @@ function ageQuery(query) {
   if (!birth) return null;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (birth > today) return null;
+  if (birth > today) return { future: true, birth };
   return { birth };
 }
 function ageParts(birth, today) {
@@ -1719,6 +1719,9 @@ function ageParts(birth, today) {
   return { years, months, days };
 }
 function ageAnswer(parsed) {
+  if (parsed.future) {
+    return `<section class="card ai-card"><h2>🎂 Age</h2><p style="font-size:20px;margin:6px 0">That date is in the future — <b>${esc(countdownFmt(parsed.birth))}</b> hasn't happened yet, so there's no age to show.</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  }
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const p = ageParts(parsed.birth, today);
