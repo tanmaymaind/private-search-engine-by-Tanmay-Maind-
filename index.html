@@ -1723,7 +1723,14 @@ function ageAnswer(parsed) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const p = ageParts(parsed.birth, today);
   const line = `<b>${p.years}</b> ${p.years === 1 ? "year" : "years"}, <b>${p.months}</b> ${p.months === 1 ? "month" : "months"}, <b>${p.days}</b> ${p.days === 1 ? "day" : "days"}`;
-  return `<section class="card ai-card"><h2>🎂 Age</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>Born ${esc(countdownFmt(parsed.birth))}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  const totalDays = Math.round((today - parsed.birth) / 86400000);
+  let next = new Date(today.getFullYear(), parsed.birth.getMonth(), parsed.birth.getDate());
+  if (next < today) next = new Date(today.getFullYear() + 1, parsed.birth.getMonth(), parsed.birth.getDate());
+  const untilNext = Math.round((next - today) / 86400000);
+  const nextLine = untilNext === 0
+    ? `🎉 <b>Today is your birthday!</b>`
+    : `Next birthday in <b>${untilNext}</b> ${untilNext === 1 ? "day" : "days"} (${esc(countdownFmt(next))})`;
+  return `<section class="card ai-card"><h2>🎂 Age</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>Born ${esc(countdownFmt(parsed.birth))} · <b>${totalDays.toLocaleString("en-IN")}</b> days old</p><p>${nextLine}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
