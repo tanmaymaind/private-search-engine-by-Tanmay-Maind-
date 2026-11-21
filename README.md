@@ -99,7 +99,11 @@ minutes”, “set a timer for 10 minutes”, “countdown 90 seconds”, “1 h
 30 minutes timer” or “stopwatch” and a live countdown (with Start/Pause
 and Reset buttons, and a beep when time is up) or a count-up stopwatch
 appears at the top, computed entirely in your browser with no API call
-and nothing stored, and shareable
+and nothing stored, age calculator: type “age born 15 August 2000”,
+“how old am I if born 1 January 2000” or “my age if I was born 12 March
+2001” and your age in years, months and days, plus total days lived and
+days until your next birthday, appears at the top, computed entirely in
+your browser with no API call and nothing stored, and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.
