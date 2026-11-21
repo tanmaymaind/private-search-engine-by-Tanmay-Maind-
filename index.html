@@ -1671,6 +1671,60 @@ function countdownAnswer(parsed) {
     : `<b>${diff}</b> ${diff === 1 ? "day" : "days"} since <b>${esc(parsed.label)}</b>`;
   return `<section class="card ai-card"><h2>📅 ${parsed.mode === "until" ? "Countdown" : "Days since"}</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(when)}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// Age calculator instant answer: "age born 15 August 2000", "how old am
+// I if born 1 January 2000", "my age if I was born 12 March 2001" or
+// "age if born 2000-08-15" shows the age in years, months and days at the
+// top. Computed entirely in your browser from the date you type — no API
+// call, nothing sent anywhere, nothing stored. Only triggers on those
+// explicit patterns, so normal searches never see this card. Dates may
+// be typed as "15 August 2000", "August 15, 2000", "2000-08-15" or
+// day-first "15/08/2000". Reuses COUNTDOWN_MONTHS and countdownDate
+// for parsing and validation. A birth date in the future, or one the
+// page cannot work out, falls through to a normal search instead of
+// guessing.
+function ageParseDate(text) {
+  const t = (text || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!t) return null;
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
+  if (m) return countdownDate(+m[2] - 1, +m[3], +m[1]);
+  m = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\s+(\d{4})$/.exec(t);
+  if (m && COUNTDOWN_MONTHS[m[2]] !== undefined) return countdownDate(COUNTDOWN_MONTHS[m[2]], +m[1], +m[3]);
+  m = /^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/.exec(t);
+  if (m && COUNTDOWN_MONTHS[m[1]] !== undefined) return countdownDate(COUNTDOWN_MONTHS[m[1]], +m[2], +m[3]);
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
+  if (m) return countdownDate(+m[2] - 1, +m[1], +m[3]);
+  return null;
+}
+function ageQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  const m = /^(?:how old am i|my age|age)(?: if(?: i)?(?: was)?)? born (?:on )?(.+)$/.exec(q);
+  if (!m) return null;
+  const birth = ageParseDate(m[1]);
+  if (!birth) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (birth > today) return null;
+  return { birth };
+}
+function ageParts(birth, today) {
+  let years = today.getFullYear() - birth.getFullYear();
+  let months = today.getMonth() - birth.getMonth();
+  let days = today.getDate() - birth.getDate();
+  if (days < 0) {
+    months -= 1;
+    days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+  }
+  if (months < 0) { years -= 1; months += 12; }
+  return { years, months, days };
+}
+function ageAnswer(parsed) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const p = ageParts(parsed.birth, today);
+  const line = `<b>${p.years}</b> ${p.years === 1 ? "year" : "years"}, <b>${p.months}</b> ${p.months === 1 ? "month" : "months"}, <b>${p.days}</b> ${p.days === 1 ? "day" : "days"}`;
+  return `<section class="card ai-card"><h2>🎂 Age</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>Born ${esc(countdownFmt(parsed.birth))}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
 // or "how to say hello in French" shows the translation at the top,
@@ -1743,6 +1797,8 @@ function renderInstant(query) {
   }
   const cd = countdownQuery(query);
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
+  const age = ageQuery(query);
+  if (age) { el.innerHTML = ageAnswer(age); return; }
   const tm = timerAnswer(query);
   if (tm) { el.innerHTML = tm; return; }
   const moon = moonPhaseAnswer(query);
