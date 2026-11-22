@@ -916,7 +916,7 @@ function instantAnswer(query) {
   // it still reaches the countdown answer.
   m = /^how many\s+([a-z°/]+)\s+(?:(?:is|are)(?:\s+there)?\s+(?:in\s+)?|in\s+)(a|an|[0-9.]+)\s+([a-z°/]+)$/.exec(q);
   if (m) { q = (m[2] === "a" || m[2] === "an" ? "1" : m[2]) + " " + m[3] + " to " + m[1]; }
-  m = /^([0-9.]+)\s*([a-z°/]+)\s+(?:in|to|=)\s*([a-z°/]+)$/.exec(q);
+  m = /^([0-9.]+)\s*([a-z°/]+)\s+(?:into|in|to|=)\s*([a-z°/]+)$/.exec(q);
   if (m) { const conv = instantConvert(parseFloat(m[1]), m[2], m[3]); if (conv) return instantCard(esc(m[1]) + " " + esc(m[2]), conv); }
   // Arithmetic: normalise word operators, then the whole query must be
   // only numbers, operators and parentheses, with at least one operator
