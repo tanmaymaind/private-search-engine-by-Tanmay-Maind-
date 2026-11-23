@@ -47,7 +47,8 @@ a keyboard shortcut: press `/` anywhere to jump to the search box, a
 “Clear” button that empties the search box and every result section and
 removes the shareable link from the address bar in one tap (in-memory
 only, nothing stored), instant answers: type a calculation like
-“12 * 8”, “15% of 200” or “sqrt(16)”, or a conversion like “10 km in
+“12 * 8”, “15% of 200”, “what percent of 200 is 25”, “20% off 500”,
+“percent increase from 100 to 120” or “sqrt(16)”, or a conversion like “10 km in
 miles”, “100 c in f”, “5 acres in sqm”, “2 gb in mb”, “convert 5 km to
 miles”, “how many miles is 5 km”, “60 mph in knots” or “10 ft/s in mph”
 (length, mass, volume, time, speed including knots and feet per second,
