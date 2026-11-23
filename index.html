@@ -826,7 +826,7 @@ async function webSearch(query) {
 // Instant answers: a calculator and unit converter, computed entirely
 // in your browser — no API call, nothing sent anywhere, nothing stored.
 // Only triggers when the whole query is a calculation ("12 * 8",
-// "15% of 200", "sqrt(16)") or a conversion ("10 km in miles",
+// "15% of 200", "what percent of 200 is 25", "sqrt(16)") or a conversion ("10 km in miles",
 // "100 c in f", "5 acres in sqm", "2 gb in mb", "1 week in hours",
 // "convert 5 km to miles", "how many miles is 5 km", "how many
 // minutes are in 2 hours"), so normal searches never see this card.
@@ -901,6 +901,14 @@ function instantAnswer(query) {
   // "15% of 200" / "15 percent of 200".
   let m = /^([0-9.]+)\s*(?:%|percent)\s+of\s+([0-9.]+)$/.exec(q);
   if (m) { const f = instantFmt(parseFloat(m[1]) / 100 * parseFloat(m[2])); return f === null ? "" : instantCard(esc(m[1]) + "% of " + esc(m[2]), f); }
+  // "what percent of 200 is 25" / "25 is what percent of 200" —
+  // the reverse question: what share one number is of another.
+  // A zero base has no meaningful answer, so it falls through to a
+  // normal search instead of showing infinity.
+  m = /^(?:what\s+)?(?:percent|%)\s+of\s+([0-9.]+)\s+is\s+([0-9.]+)$/.exec(q);
+  if (m) { const base = parseFloat(m[1]); if (base === 0) return ""; const f = instantFmt(parseFloat(m[2]) / base * 100); return f === null ? "" : instantCard(esc(m[2]) + " is what percent of " + esc(m[1]), f + "%"); }
+  m = /^([0-9.]+)\s+is\s+what\s+(?:percent|%)\s+of\s+([0-9.]+)$/.exec(q);
+  if (m) { const base = parseFloat(m[2]); if (base === 0) return ""; const f = instantFmt(parseFloat(m[1]) / base * 100); return f === null ? "" : instantCard(esc(m[1]) + " is what percent of " + esc(m[2]), f + "%"); }
   // "10 km in miles" / "100 c to f" / "60 mph in km/h" / "5 acres in
   // sqm" / "2 gb in mb". Multi-word area units are folded to one token
   // first ("square meters" -> "sqm", "sq ft" -> "sqft") so the pattern
