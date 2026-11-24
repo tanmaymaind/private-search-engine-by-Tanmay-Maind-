@@ -1765,6 +1765,54 @@ function ageAnswer(parsed) {
     : `Next birthday in <b>${untilNext}</b> ${untilNext === 1 ? "day" : "days"} (${esc(countdownFmt(next))})`;
   return `<section class="card ai-card"><h2>🎂 Age</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>Born ${esc(countdownFmt(parsed.birth))} · <b>${totalDays.toLocaleString("en-IN")}</b> days old</p><p>${nextLine}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// BMI calculator instant answer: "bmi 70 kg 175 cm", "bmi 70 175",
+// "bmi 154 lb 5 ft 9 in" or "bmi 154 lb 69 in" shows your body mass
+// index plus its category and the healthy weight range for your height.
+// Computed entirely in your browser — no API call, nothing sent
+// anywhere, nothing stored. Only triggers on an explicit "bmi ..."
+// query, so normal searches never see this card. Metric is the default
+// when no units are given (a bare height over 3 is read as cm, under 3
+// as metres); imperial needs lb and ft/in. Implausible numbers fall
+// through to a normal search instead of showing a nonsense BMI.
+function bmiQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  const m = /^(?:what(?:'s| is) my )?bmi\s+(.+)$/.exec(q);
+  if (!m) return null;
+  const rest = m[1].replace(/,/g, " ").replace(/\s+/g, " ").trim();
+  let im = /^([0-9.]+)\s*(?:lb|lbs|pounds?)\s+(\d+)\s*(?:ft|feet|')\s*(\d+)\s*(?:in|inch|inches|")?$/.exec(rest);
+  if (im) return bmiSanity(parseFloat(im[1]) * 0.45359237, (parseFloat(im[2]) * 12 + parseFloat(im[3])) * 0.0254);
+  im = /^([0-9.]+)\s*(?:lb|lbs|pounds?)\s+([0-9.]+)\s*(?:in|inch|inches|")$/.exec(rest);
+  if (im) return bmiSanity(parseFloat(im[1]) * 0.45359237, parseFloat(im[2]) * 0.0254);
+  const mt = /^([0-9.]+)\s*(?:kg|kgs|kilograms?|kilogrammes?)?\s+([0-9.]+)\s*(cm|centimeters?|centimetres?|m|meters?|metres?)?$/.exec(rest);
+  if (!mt) return null;
+  const kg = parseFloat(mt[1]);
+  let h = parseFloat(mt[2]);
+  const unit = mt[3] || "";
+  if (unit === "m" || unit === "meter" || unit === "meters" || unit === "metre" || unit === "metres") { /* already metres */ }
+  else if (unit === "cm" || unit === "centimeter" || unit === "centimeters" || unit === "centimetre" || unit === "centimetres") h = h / 100;
+  else if (h > 3) h = h / 100; // bare number: "175" is cm, "1.75" is m
+  return bmiSanity(kg, h);
+}
+function bmiSanity(kg, m) {
+  if (!isFinite(kg) || !isFinite(m) || kg <= 0 || m <= 0) return null;
+  if (kg < 2 || kg > 500 || m < 0.5 || m > 2.5) return null;
+  return { kg, m };
+}
+function bmiCategory(bmi) {
+  if (bmi < 18.5) return "Underweight";
+  if (bmi < 25) return "Healthy weight";
+  if (bmi < 30) return "Overweight";
+  return "Obese";
+}
+function bmiAnswer(p) {
+  const bmi = p.kg / (p.m * p.m);
+  const value = (Math.round(bmi * 10) / 10).toFixed(1);
+  const cat = bmiCategory(bmi);
+  const lo = (Math.round(18.5 * p.m * p.m * 10) / 10).toFixed(1);
+  const hi = (Math.round(24.9 * p.m * p.m * 10) / 10).toFixed(1);
+  return `<section class="card ai-card"><h2>⚖️ BMI</h2><p style="font-size:26px;margin:6px 0">Your BMI is <b>${value}</b> — ${esc(cat)}</p><p>Healthy weight for your height: <b>${lo}–${hi} kg</b></p><p class="muted">BMI is a rough guide only — it doesn't account for muscle, age or body type. Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
 // or "how to say hello in French" shows the translation at the top,
@@ -1839,6 +1887,8 @@ function renderInstant(query) {
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
   const age = ageQuery(query);
   if (age) { el.innerHTML = ageAnswer(age); return; }
+  const bmi = bmiQuery(query);
+  if (bmi) { el.innerHTML = bmiAnswer(bmi); return; }
   const tm = timerAnswer(query);
   if (tm) { el.innerHTML = tm; return; }
   const moon = moonPhaseAnswer(query);
