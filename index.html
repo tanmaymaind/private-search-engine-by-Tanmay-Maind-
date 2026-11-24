@@ -1784,13 +1784,13 @@ function bmiQuery(query) {
   if (im) return bmiSanity(parseFloat(im[1]) * 0.45359237, (parseFloat(im[2]) * 12 + parseFloat(im[3])) * 0.0254);
   im = /^([0-9.]+)\s*(?:lb|lbs|pounds?)\s+([0-9.]+)\s*(?:in|inch|inches|")$/.exec(rest);
   if (im) return bmiSanity(parseFloat(im[1]) * 0.45359237, parseFloat(im[2]) * 0.0254);
-  const mt = /^([0-9.]+)\s*(?:kg|kgs|kilograms?|kilogrammes?)?\s+([0-9.]+)\s*(cm|centimeters?|centimetres?|m|meters?|metres?)?$/.exec(rest);
+  const mt = /^([0-9.]+)\s*(?:kg|kgs|kilograms?|kilogrammes?)?\s+([0-9.]+)\s*(cms?|centimeters?|centimetres?|m|meters?|metres?)?$/.exec(rest);
   if (!mt) return null;
   const kg = parseFloat(mt[1]);
   let h = parseFloat(mt[2]);
   const unit = mt[3] || "";
   if (unit === "m" || unit === "meter" || unit === "meters" || unit === "metre" || unit === "metres") { /* already metres */ }
-  else if (unit === "cm" || unit === "centimeter" || unit === "centimeters" || unit === "centimetre" || unit === "centimetres") h = h / 100;
+  else if (unit === "cm" || unit === "cms" || unit === "centimeter" || unit === "centimeters" || unit === "centimetre" || unit === "centimetres") h = h / 100;
   else if (h > 3) h = h / 100; // bare number: "175" is cm, "1.75" is m
   return bmiSanity(kg, h);
 }
