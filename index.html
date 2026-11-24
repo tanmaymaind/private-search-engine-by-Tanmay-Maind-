@@ -1800,18 +1800,19 @@ function bmiSanity(kg, m) {
   return { kg, m };
 }
 function bmiCategory(bmi) {
-  if (bmi < 18.5) return "Underweight";
-  if (bmi < 25) return "Healthy weight";
-  if (bmi < 30) return "Overweight";
-  return "Obese";
+  if (bmi < 18.5) return ["Underweight", "#3b82f6"];
+  if (bmi < 25) return ["Healthy weight", "#16a34a"];
+  if (bmi < 30) return ["Overweight", "#d97706"];
+  return ["Obese", "#dc2626"];
 }
 function bmiAnswer(p) {
   const bmi = p.kg / (p.m * p.m);
   const value = (Math.round(bmi * 10) / 10).toFixed(1);
-  const cat = bmiCategory(bmi);
+  const [cat, color] = bmiCategory(bmi);
   const lo = (Math.round(18.5 * p.m * p.m * 10) / 10).toFixed(1);
   const hi = (Math.round(24.9 * p.m * p.m * 10) / 10).toFixed(1);
-  return `<section class="card ai-card"><h2>⚖️ BMI</h2><p style="font-size:26px;margin:6px 0">Your BMI is <b>${value}</b> — ${esc(cat)}</p><p>Healthy weight for your height: <b>${lo}–${hi} kg</b></p><p class="muted">BMI is a rough guide only — it doesn't account for muscle, age or body type. Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  const chip = `<span style="background:${color};color:#fff;border-radius:999px;padding:2px 12px;font-size:16px;vertical-align:middle">${esc(cat)}</span>`;
+  return `<section class="card ai-card"><h2>⚖️ BMI</h2><p style="font-size:26px;margin:6px 0">Your BMI is <b>${value}</b> — ${chip}</p><p>Healthy weight for your height: <b>${lo}–${hi} kg</b></p><p><button class="clear-btn" type="button" data-v="BMI ${value} (${esc(cat)})" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">BMI is a rough guide only — it doesn't account for muscle, age or body type. Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
@@ -2078,7 +2079,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "convert 5 km to miles", "20% off 500", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice", "generate password", "timer 5 minutes", "age born 15 August 2000"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "convert 5 km to miles", "20% off 500", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice", "generate password", "timer 5 minutes", "age born 15 August 2000", "bmi 70 kg 175 cm"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");
