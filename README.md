@@ -106,7 +106,12 @@ and nothing stored, age calculator: type “age born 15 August 2000”,
 “how old am I if born 1 January 2000” or “my age if I was born 12 March
 2001” and your age in years, months and days, plus total days lived and
 days until your next birthday, appears at the top, computed entirely in
-your browser with no API call and nothing stored, and shareable
+your browser with no API call and nothing stored, BMI calculator: type
+“bmi 70 kg 175 cm” (or “bmi 154 lb 5 ft 9 in”) and your body mass index
+with its category (Underweight / Healthy weight / Overweight / Obese)
+and the healthy weight range for your height appears at the top,
+computed entirely in your browser with no API call and nothing stored,
+and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
 “Copy search link” button, so a pasted link opens the same search.
