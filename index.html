@@ -1834,6 +1834,15 @@ function tipQuery(query) {
     if (bill > 0 && bill <= 100000000 && people >= 1 && people <= 1000 && (pct === null || (pct >= 0 && pct <= 100))) return { bill, pct, people };
     return null;
   }
+  // "split 1200 4 ways" / "split 1200 4 ways with 15% tip".
+  m = /^split(?: the bill)?\s+([0-9.,]+)\s+(\d+)\s+ways(?:\s+with\s+(?:a\s+)?([0-9.]+)\s*(?:%|percent)\s*tip)?$/.exec(q);
+  if (m) {
+    const bill = parseFloat(m[1].replace(/,/g, ""));
+    const people = parseInt(m[2], 10);
+    const pct = m[3] === undefined ? null : parseFloat(m[3]);
+    if (bill > 0 && bill <= 100000000 && people >= 1 && people <= 1000 && (pct === null || (pct >= 0 && pct <= 100))) return { bill, pct, people };
+    return null;
+  }
   m = /^([0-9.]+)\s*(?:%|percent)\s+tip\s+on\s+([0-9.,]+)$/.exec(q);
   if (m) { const bill = parseFloat(m[2].replace(/,/g, "")); const pct = parseFloat(m[1]); if (bill > 0 && bill <= 100000000 && pct >= 0 && pct <= 100) return { bill, pct, people: null }; return null; }
   m = /^tip\s+(?:([0-9.]+)\s*(?:%|percent)\s+)?on\s+([0-9.,]+)$/.exec(q);
