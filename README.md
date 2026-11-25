@@ -111,6 +111,12 @@ your browser with no API call and nothing stored, BMI calculator: type
 with its category (Underweight / Healthy weight / Overweight / Obese)
 and the healthy weight range for your height appears at the top,
 computed entirely in your browser with no API call and nothing stored,
+tip calculator & bill split: type “tip 15% on 800”, “15% tip on 800”,
+“tip on 800” (15% by default) or “split 1200 among 4”, “split 1200
+between 4 people”, “split 1200 4 ways” or “split 1200 among 4 with 15%
+tip” and the tip, the total and what each person pays appear at the
+top, computed entirely in your browser with no API call and nothing
+stored,
 and shareable
 search links: searching updates the address bar to `?q=your query`
 (in place, with no extra history entry and nothing stored), with a
