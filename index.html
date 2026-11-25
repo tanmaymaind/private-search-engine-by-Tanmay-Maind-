@@ -1814,6 +1814,45 @@ function bmiAnswer(p) {
   const chip = `<span style="background:${color};color:#fff;border-radius:999px;padding:2px 12px;font-size:16px;vertical-align:middle">${esc(cat)}</span>`;
   return `<section class="card ai-card"><h2>⚖️ BMI</h2><p style="font-size:26px;margin:6px 0">Your BMI is <b>${value}</b> — ${chip}</p><p>Healthy weight for your height: <b>${lo}–${hi} kg</b></p><p><button class="clear-btn" type="button" data-v="BMI ${value} (${esc(cat)})" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">BMI is a rough guide only — it doesn't account for muscle, age or body type. Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// Tip calculator & bill split instant answer: "tip 15% on 800",
+// "15% tip on 800", "tip on 800" (15% by default) or "tip 800" shows
+// the tip and the total; "split 1200 among 4", "split 1200 between 4
+// people" or "divide 1200 by 4" shows what each person pays, and
+// "split 1200 among 4 with 15% tip" combines both. Computed entirely
+// in your browser — no API call, nothing sent anywhere, nothing
+// stored. Only triggers on those explicit patterns, so normal searches
+// never see this card. Implausible numbers fall through to a normal
+// search instead of showing a nonsense split.
+function tipQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "").replace(/^(?:what(?:'s| is)(?: the)?|calculate|how much is)\s+/, "");
+  if (!q) return null;
+  let m = /^(?:split(?: the bill)?|divide)\s+([0-9.,]+)\s+(?:among|between|by|for)\s+(\d+)\s*(?:people|persons|friends|ways)?(?:\s+with\s+(?:a\s+)?([0-9.]+)\s*(?:%|percent)\s*tip)?$/.exec(q);
+  if (m) {
+    const bill = parseFloat(m[1].replace(/,/g, ""));
+    const people = parseInt(m[2], 10);
+    const pct = m[3] === undefined ? null : parseFloat(m[3]);
+    if (bill > 0 && bill <= 100000000 && people >= 1 && people <= 1000 && (pct === null || (pct >= 0 && pct <= 100))) return { bill, pct, people };
+    return null;
+  }
+  m = /^([0-9.]+)\s*(?:%|percent)\s+tip\s+on\s+([0-9.,]+)$/.exec(q);
+  if (m) { const bill = parseFloat(m[2].replace(/,/g, "")); const pct = parseFloat(m[1]); if (bill > 0 && bill <= 100000000 && pct >= 0 && pct <= 100) return { bill, pct, people: null }; return null; }
+  m = /^tip\s+(?:([0-9.]+)\s*(?:%|percent)\s+)?on\s+([0-9.,]+)$/.exec(q);
+  if (m) { const bill = parseFloat(m[2].replace(/,/g, "")); const pct = m[1] === undefined ? 15 : parseFloat(m[1]); if (bill > 0 && bill <= 100000000 && pct >= 0 && pct <= 100) return { bill, pct, people: null }; return null; }
+  m = /^tip\s+([0-9.,]+)$/.exec(q);
+  if (m) { const bill = parseFloat(m[1].replace(/,/g, "")); if (bill > 0 && bill <= 100000000) return { bill, pct: 15, people: null }; return null; }
+  return null;
+}
+function tipMoney(n) { const f = instantFmt(Math.round(n * 100) / 100); return f === null ? "" : f; }
+function tipAnswer(p) {
+  const tip = p.pct === null ? 0 : p.bill * p.pct / 100;
+  const total = p.bill + tip;
+  const lines = [];
+  if (p.pct !== null) lines.push(`<p style="font-size:26px;margin:6px 0">Tip (${esc(String(p.pct))}%) is <b>${tipMoney(tip)}</b></p>`);
+  lines.push(`<p style="font-size:20px;margin:6px 0">Total${p.pct !== null ? " with tip" : ""}: <b>${tipMoney(total)}</b>${p.pct !== null ? ` (bill ${tipMoney(p.bill)} + tip ${tipMoney(tip)})` : ""}</p>`);
+  if (p.people !== null) lines.push(`<p style="font-size:20px;margin:6px 0">Each of ${esc(String(p.people))} pays: <b>${tipMoney(total / p.people)}</b></p>`);
+  const copyText = p.people !== null ? `Each pays ${tipMoney(total / p.people)} of ${tipMoney(total)} total` : (p.pct !== null ? `Tip ${tipMoney(tip)}, total ${tipMoney(total)}` : `Total ${tipMoney(total)}`);
+  return `<section class="card ai-card"><h2>💸 Tip &amp; bill split</h2>${lines.join("")}<p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
 // or "how to say hello in French" shows the translation at the top,
@@ -1890,6 +1929,8 @@ function renderInstant(query) {
   if (age) { el.innerHTML = ageAnswer(age); return; }
   const bmi = bmiQuery(query);
   if (bmi) { el.innerHTML = bmiAnswer(bmi); return; }
+  const tip = tipQuery(query);
+  if (tip) { el.innerHTML = tipAnswer(tip); return; }
   const tm = timerAnswer(query);
   if (tm) { el.innerHTML = tm; return; }
   const moon = moonPhaseAnswer(query);
