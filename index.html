@@ -1701,6 +1701,45 @@ function countdownAnswer(parsed) {
     : `<b>${diff}</b> ${diff === 1 ? "day" : "days"} since <b>${esc(parsed.label)}</b>`;
   return `<section class="card ai-card"><h2>📅 ${parsed.mode === "until" ? "Countdown" : "Days since"}</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(when)}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// Weekday finder & days-between instant answer: "what day of the week
+// is 25 December 2026", "what day was 15 August 1947", "what weekday
+// is 1 January 2027" or "day of the week 25 Dec 2026" shows the
+// weekday of that date; "days between 1 January 2026 and 26 November
+// 2026", "how many days between 1 Jan 2026 and 26 Nov 2026" or "days
+// from 1 January 2026 to 26 November 2026" shows how many days lie
+// between two dates. Computed entirely in your browser — no API call,
+// nothing sent anywhere, nothing stored. Reuses countdownResolve for
+// parsing, so the same date forms work ("25 December 2026",
+// "December 25, 2026", "2026-12-25", "25/12/2026", named days like
+// Christmas); a date the page cannot work out falls through to a
+// normal search instead of guessing. A yearless date resolves to its
+// next occurrence, like the countdown does.
+function weekdayQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "");
+  if (!q) return null;
+  let m = /^(?:how many days |days )?(?:between|from)\s+(.+?)\s+(?:and|to)\s+(.+)$/.exec(q);
+  if (m) {
+    const a = countdownResolve(m[1], "until");
+    const b = countdownResolve(m[2], "until");
+    if (a && b) return { mode: "between", from: a.target, fromLabel: a.label, to: b.target, toLabel: b.label };
+    return null;
+  }
+  m = /^(?:what\s+day(?:\s+of\s+the\s+week)?|what\s+weekday|day\s+of\s+the\s+week|weekday|on\s+what\s+day(?:\s+of\s+the\s+week)?)\s+(?:is|was|is it|was it|does|did|falls?|falls on)?\s*(.+)$/.exec(q);
+  if (!m || !m[1]) return null;
+  const r = countdownResolve(m[1], "until");
+  return r ? { mode: "weekday", target: r.target, label: r.label } : null;
+}
+function weekdayAnswer(parsed) {
+  if (parsed.mode === "between") {
+    const diff = Math.round(Math.abs(parsed.to - parsed.from) / 86400000);
+    const line = diff === 0
+      ? `<b>${esc(parsed.fromLabel)}</b> and <b>${esc(parsed.toLabel)}</b> are the same day`
+      : `There ${diff === 1 ? "is" : "are"} <b>${diff}</b> ${diff === 1 ? "day" : "days"} between <b>${esc(parsed.fromLabel)}</b> and <b>${esc(parsed.toLabel)}</b>`;
+    return `<section class="card ai-card"><h2>📅 Days between</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(countdownFmt(parsed.from))} → ${esc(countdownFmt(parsed.to))}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  }
+  const day = parsed.target.toLocaleDateString("en-GB", { weekday: "long" });
+  return `<section class="card ai-card"><h2>📅 Weekday</h2><p style="font-size:26px;margin:6px 0"><b>${esc(parsed.label)}</b> is a <b>${esc(day)}</b></p><p>${esc(countdownFmt(parsed.target))}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Age calculator instant answer: "age born 15 August 2000", "how old am
 // I if born 1 January 2000", "my age if I was born 12 March 2001" or
 // "age if born 2000-08-15" shows the age in years, months and days at the
@@ -1934,6 +1973,8 @@ function renderInstant(query) {
   }
   const cd = countdownQuery(query);
   if (cd) { el.innerHTML = countdownAnswer(cd); return; }
+  const wd = weekdayQuery(query);
+  if (wd) { el.innerHTML = weekdayAnswer(wd); return; }
   const age = ageQuery(query);
   if (age) { el.innerHTML = ageAnswer(age); return; }
   const bmi = bmiQuery(query);
