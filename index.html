@@ -1735,10 +1735,11 @@ function weekdayAnswer(parsed) {
     const line = diff === 0
       ? `<b>${esc(parsed.fromLabel)}</b> and <b>${esc(parsed.toLabel)}</b> are the same day`
       : `There ${diff === 1 ? "is" : "are"} <b>${diff}</b> ${diff === 1 ? "day" : "days"} between <b>${esc(parsed.fromLabel)}</b> and <b>${esc(parsed.toLabel)}</b>`;
-    return `<section class="card ai-card"><h2>📅 Days between</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(countdownFmt(parsed.from))} → ${esc(countdownFmt(parsed.to))}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+    const copyText = diff === 0 ? `${parsed.fromLabel} and ${parsed.toLabel} are the same day` : `${diff} days between ${parsed.fromLabel} and ${parsed.toLabel}`;
+    return `<section class="card ai-card"><h2>📅 Days between</h2><p style="font-size:26px;margin:6px 0">${line}</p><p>${esc(countdownFmt(parsed.from))} → ${esc(countdownFmt(parsed.to))}</p><p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
   }
   const day = parsed.target.toLocaleDateString("en-GB", { weekday: "long" });
-  return `<section class="card ai-card"><h2>📅 Weekday</h2><p style="font-size:26px;margin:6px 0"><b>${esc(parsed.label)}</b> is a <b>${esc(day)}</b></p><p>${esc(countdownFmt(parsed.target))}</p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  return `<section class="card ai-card"><h2>📅 Weekday</h2><p style="font-size:26px;margin:6px 0"><b>${esc(parsed.label)}</b> is a <b>${esc(day)}</b></p><p>${esc(countdownFmt(parsed.target))}</p><p><button class="clear-btn" type="button" data-v="${esc(parsed.label + " is a " + day)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
 // Age calculator instant answer: "age born 15 August 2000", "how old am
 // I if born 1 January 2000", "my age if I was born 12 March 2001" or
@@ -2170,7 +2171,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "convert 5 km to miles", "20% off 500", "days until Christmas", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice", "generate password", "timer 5 minutes", "age born 15 August 2000", "bmi 70 kg 175 cm", "tip 15% on 800"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "convert 5 km to miles", "20% off 500", "days until Christmas", "what day is 25 December 2026", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice", "generate password", "timer 5 minutes", "age born 15 August 2000", "bmi 70 kg 175 cm", "tip 15% on 800"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");
