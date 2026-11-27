@@ -1726,7 +1726,16 @@ function weekdayQuery(query) {
   }
   m = /^(?:what\s+day(?:\s+of\s+the\s+week)?|what\s+weekday|day\s+of\s+the\s+week|weekday|on\s+what\s+day(?:\s+of\s+the\s+week)?)\s+(?:is|was|is it|was it|does|did|falls?|falls on)?\s*(.+)$/.exec(q);
   if (!m || !m[1]) return null;
-  const r = countdownResolve(m[1], "until");
+  // "what day did 1 January fall on" puts the verb after the date,
+  // so a trailing "fall on" / "falls on" is dropped before parsing.
+  const dateText = m[1].replace(/\s+falls?\s+on$/, "").replace(/\s+fall$/, "");
+  if (!dateText) return null;
+  // Past tense ("what day was 15 August") asks about the most recent
+  // occurrence, so a yearless date resolves backwards; present tense
+  // ("what day is 15 August") looks forward, like the countdown. A
+  // date with an explicit year is exact either way.
+  const past = /\b(?:was|did|fell)\b/.test(q);
+  const r = countdownResolve(dateText, past ? "since" : "until");
   return r ? { mode: "weekday", target: r.target, label: r.label } : null;
 }
 function weekdayAnswer(parsed) {
