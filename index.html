@@ -1911,6 +1911,37 @@ function tipAnswer(p) {
   const copyText = p.people !== null ? `Each pays ${tipMoney(total / p.people)} of ${tipMoney(total)} total` : (p.pct !== null ? `Tip ${tipMoney(tip)}, total ${tipMoney(total)}` : `Total ${tipMoney(total)}`);
   return `<section class="card ai-card"><h2>💸 Tip &amp; bill split</h2>${lines.join("")}<p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// EMI calculator instant answer: "emi 500000 10% 5 years", "emi on
+// 500000 at 10% for 5 years", "loan emi 1000000 at 9.5% for 20 years"
+// or "emi 500000 10% 60 months" shows the monthly EMI, the total
+// interest and the total amount payable. Computed entirely in your
+// browser — no API call, nothing sent anywhere, nothing stored. Only
+// triggers on those explicit patterns, so normal searches never see
+// this card. Implausible numbers fall through to a normal search
+// instead of showing a nonsense EMI.
+function emiQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "").replace(/^(?:what(?:'s| is)(?: the)?|calculate|how much is)\s+/, "");
+  if (!q) return null;
+  const m = /^(?:loan\s+)?emi\s+(?:on\s+|for\s+)?([0-9.,]+)\s+(?:at\s+)?([0-9.]+)\s*(?:%|percent)\s*(?:per\s+year|p\.?\s*a\.?|annual(?:ly)?)?\s*(?:for\s+)?([0-9.]+)\s*(years?|yrs?|months?)$/.exec(q);
+  if (!m) return null;
+  const principal = parseFloat(m[1].replace(/,/g, ""));
+  const rate = parseFloat(m[2]);
+  let months = parseFloat(m[3]);
+  if (!m[4].startsWith("month")) months = months * 12;
+  if (!isFinite(principal) || !isFinite(rate) || !isFinite(months)) return null;
+  if (principal <= 0 || principal > 100000000 || rate < 0 || rate > 60) return null;
+  if (months < 1 || months > 360 || Math.floor(months) !== months) return null;
+  return { principal, rate, months };
+}
+function emiAnswer(p) {
+  const r = p.rate / 1200;
+  const emi = r === 0 ? p.principal / p.months : p.principal * r * Math.pow(1 + r, p.months) / (Math.pow(1 + r, p.months) - 1);
+  const total = emi * p.months;
+  const interest = total - p.principal;
+  const years = p.months % 12 === 0 ? String(p.months / 12) + (p.months / 12 === 1 ? " year" : " years") : String(p.months) + " months";
+  const copyText = `EMI ${tipMoney(emi)} per month, total interest ${tipMoney(interest)}, total payable ${tipMoney(total)}`;
+  return `<section class="card ai-card"><h2>🏦 EMI calculator</h2><p style="font-size:26px;margin:6px 0">Monthly EMI: <b>${tipMoney(emi)}</b></p><p style="font-size:20px;margin:6px 0">Total interest: <b>${tipMoney(interest)}</b> · Total payable: <b>${tipMoney(total)}</b></p><p>Loan ${tipMoney(p.principal)} at ${esc(String(p.rate))}% p.a. for ${esc(years)} (${esc(String(p.months))} months)</p><p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
 // or "how to say hello in French" shows the translation at the top,
@@ -1991,6 +2022,8 @@ function renderInstant(query) {
   if (bmi) { el.innerHTML = bmiAnswer(bmi); return; }
   const tip = tipQuery(query);
   if (tip) { el.innerHTML = tipAnswer(tip); return; }
+  const emi = emiQuery(query);
+  if (emi) { el.innerHTML = emiAnswer(emi); return; }
   const tm = timerAnswer(query);
   if (tm) { el.innerHTML = tm; return; }
   const moon = moonPhaseAnswer(query);
