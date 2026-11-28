@@ -1944,7 +1944,9 @@ function emiAnswer(p) {
 }
 // GST calculator instant answer: "gst on 1000 at 18%" or "1000 +
 // 18% gst" adds GST to a price and shows the GST amount, the total
-// with GST, and the CGST/SGST half split. Computed entirely in your
+// with GST, and the CGST/SGST half split. "1180 including 18% gst"
+// works the other way: the price already includes GST, so it shows
+// the base price and the GST inside it. Computed entirely in your
 // browser — no API call, nothing sent anywhere, nothing stored. Only
 // triggers on those explicit patterns, so normal searches never see
 // this card. Implausible numbers fall through to a normal search
@@ -1956,6 +1958,12 @@ function gstQuery(query) {
   if (m) return gstParsed(m[1], m[2], false);
   m = /^gst\s+(?:on\s+)?([0-9.,]+)\s+(?:at\s+)?([0-9.]+)\s*(?:%|percent)(?:\s*gst)?$/.exec(q);
   if (m) return gstParsed(m[1], m[2], false);
+  m = /^([0-9.,]+)\s+(?:including|inclusive of)\s+([0-9.]+)\s*(?:%|percent)\s*gst(?:\s+included)?$/.exec(q);
+  if (m) return gstParsed(m[1], m[2], true);
+  m = /^([0-9.,]+)\s+with\s+([0-9.]+)\s*(?:%|percent)\s*gst\s+included$/.exec(q);
+  if (m) return gstParsed(m[1], m[2], true);
+  m = /^([0-9.,]+)\s+including\s+gst\s+(?:at\s+)?([0-9.]+)\s*(?:%|percent)$/.exec(q);
+  if (m) return gstParsed(m[1], m[2], true);
   return null;
 }
 function gstParsed(priceText, rateText, inclusive) {
@@ -1966,11 +1974,24 @@ function gstParsed(priceText, rateText, inclusive) {
   return { price, rate, inclusive };
 }
 function gstAnswer(p) {
-  const gst = p.price * p.rate / 100;
-  const total = p.price + gst;
+  let base, gst, total;
+  if (p.inclusive) {
+    total = p.price;
+    base = total / (1 + p.rate / 100);
+    gst = total - base;
+  } else {
+    base = p.price;
+    gst = base * p.rate / 100;
+    total = base + gst;
+  }
   const half = gst / 2;
-  const copyText = `Price ${tipMoney(p.price)} + ${p.rate}% GST ${tipMoney(gst)} = ${tipMoney(total)}`;
-  return `<section class="card ai-card"><h2>🧾 GST calculator</h2><p style="font-size:26px;margin:6px 0">Total with GST: <b>${tipMoney(total)}</b></p><p style="font-size:20px;margin:6px 0">GST (${esc(String(p.rate))}%): <b>${tipMoney(gst)}</b> on a base price of <b>${tipMoney(p.price)}</b></p><p>CGST ${tipMoney(half)} + SGST ${tipMoney(half)} (each ${esc(String(p.rate / 2))}%)</p><p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+  const copyText = p.inclusive
+    ? `Base price ${tipMoney(base)}, GST ${tipMoney(gst)} at ${p.rate}%, total ${tipMoney(total)}`
+    : `Price ${tipMoney(base)} + ${p.rate}% GST ${tipMoney(gst)} = ${tipMoney(total)}`;
+  const headline = p.inclusive
+    ? `<p style="font-size:26px;margin:6px 0">Base price: <b>${tipMoney(base)}</b></p><p style="font-size:20px;margin:6px 0">GST (${esc(String(p.rate))}%) included in the price: <b>${tipMoney(gst)}</b> · Total paid: <b>${tipMoney(total)}</b></p>`
+    : `<p style="font-size:26px;margin:6px 0">Total with GST: <b>${tipMoney(total)}</b></p><p style="font-size:20px;margin:6px 0">GST (${esc(String(p.rate))}%): <b>${tipMoney(gst)}</b> on a base price of <b>${tipMoney(base)}</b></p>`;
+  return `<section class="card ai-card"><h2>🧾 GST calculator</h2>${headline}<p>CGST ${tipMoney(half)} + SGST ${tipMoney(half)} (each ${esc(String(p.rate / 2))}%)</p><p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
