@@ -1942,6 +1942,36 @@ function emiAnswer(p) {
   const copyText = `EMI ${tipMoney(emi)} per month, total interest ${tipMoney(interest)}, total payable ${tipMoney(total)}`;
   return `<section class="card ai-card"><h2>🏦 EMI calculator</h2><p style="font-size:26px;margin:6px 0">Monthly EMI: <b>${tipMoney(emi)}</b></p><p style="font-size:20px;margin:6px 0">Total interest: <b>${tipMoney(interest)}</b> · Total payable: <b>${tipMoney(total)}</b></p><p>Loan ${tipMoney(p.principal)} at ${esc(String(p.rate))}% p.a. for ${esc(years)} (${esc(String(p.months))} months)</p><p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
 }
+// GST calculator instant answer: "gst on 1000 at 18%" or "1000 +
+// 18% gst" adds GST to a price and shows the GST amount, the total
+// with GST, and the CGST/SGST half split. Computed entirely in your
+// browser — no API call, nothing sent anywhere, nothing stored. Only
+// triggers on those explicit patterns, so normal searches never see
+// this card. Implausible numbers fall through to a normal search
+// instead of showing a nonsense GST.
+function gstQuery(query) {
+  const q = (query || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.]\s*$/, "").replace(/^(?:what(?:'s| is)(?: the)?|calculate|how much is)\s+/, "");
+  if (!q) return null;
+  let m = /^(?:gst\s+)?([0-9.,]+)\s*(?:\+|plus)\s*([0-9.]+)\s*(?:%|percent)\s*gst$/.exec(q);
+  if (m) return gstParsed(m[1], m[2], false);
+  m = /^gst\s+(?:on\s+)?([0-9.,]+)\s+(?:at\s+)?([0-9.]+)\s*(?:%|percent)(?:\s*gst)?$/.exec(q);
+  if (m) return gstParsed(m[1], m[2], false);
+  return null;
+}
+function gstParsed(priceText, rateText, inclusive) {
+  const price = parseFloat(priceText.replace(/,/g, ""));
+  const rate = parseFloat(rateText);
+  if (!isFinite(price) || !isFinite(rate)) return null;
+  if (price <= 0 || price > 100000000 || rate <= 0 || rate > 28) return null;
+  return { price, rate, inclusive };
+}
+function gstAnswer(p) {
+  const gst = p.price * p.rate / 100;
+  const total = p.price + gst;
+  const half = gst / 2;
+  const copyText = `Price ${tipMoney(p.price)} + ${p.rate}% GST ${tipMoney(gst)} = ${tipMoney(total)}`;
+  return `<section class="card ai-card"><h2>🧾 GST calculator</h2><p style="font-size:26px;margin:6px 0">Total with GST: <b>${tipMoney(total)}</b></p><p style="font-size:20px;margin:6px 0">GST (${esc(String(p.rate))}%): <b>${tipMoney(gst)}</b> on a base price of <b>${tipMoney(p.price)}</b></p><p>CGST ${tipMoney(half)} + SGST ${tipMoney(half)} (each ${esc(String(p.rate / 2))}%)</p><p><button class="clear-btn" type="button" data-v="${esc(copyText)}" onclick="if (navigator.clipboard) navigator.clipboard.writeText(this.dataset.v).then(() => toast('Result copied.'));">📋 Copy result</button></p><p class="muted">Calculated in your browser — nothing is sent anywhere, and nothing is stored.</p></section>`;
+}
 // Translate instant answer: "translate hello to Hindi", "translate
 // good morning into Marathi", "how do you say thank you in Spanish"
 // or "how to say hello in French" shows the translation at the top,
@@ -2024,6 +2054,8 @@ function renderInstant(query) {
   if (tip) { el.innerHTML = tipAnswer(tip); return; }
   const emi = emiQuery(query);
   if (emi) { el.innerHTML = emiAnswer(emi); return; }
+  const gst = gstQuery(query);
+  if (gst) { el.innerHTML = gstAnswer(gst); return; }
   const tm = timerAnswer(query);
   if (tm) { el.innerHTML = tm; return; }
   const moon = moonPhaseAnswer(query);
