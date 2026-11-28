@@ -1958,6 +1958,8 @@ function gstQuery(query) {
   if (m) return gstParsed(m[1], m[2], false);
   m = /^gst\s+(?:on\s+)?([0-9.,]+)\s+(?:at\s+)?([0-9.]+)\s*(?:%|percent)(?:\s*gst)?$/.exec(q);
   if (m) return gstParsed(m[1], m[2], false);
+  m = /^gst\s+([0-9.]+)\s*(?:%|percent)\s+on\s+([0-9.,]+)$/.exec(q);
+  if (m) return gstParsed(m[2], m[1], false);
   m = /^([0-9.,]+)\s+(?:including|inclusive of)\s+([0-9.]+)\s*(?:%|percent)\s*gst(?:\s+included)?$/.exec(q);
   if (m) return gstParsed(m[1], m[2], true);
   m = /^([0-9.,]+)\s+with\s+([0-9.]+)\s*(?:%|percent)\s*gst\s+included$/.exec(q);
@@ -2266,7 +2268,7 @@ document.querySelectorAll("[data-tab-link]").forEach(a => a.addEventListener("cl
 }));
 
 // Animated placeholder: cycles example queries while the box is empty.
-const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "convert 5 km to miles", "20% off 500", "days until Christmas", "what day is 25 December 2026", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice", "generate password", "timer 5 minutes", "age born 15 August 2000", "bmi 70 kg 175 cm", "tip 15% on 800", "emi 500000 10% 5 years"];
+const novaraPlaceholders = ["Best laptops 2026", "How to learn Python", "Weather in Tokyo", "Albert Einstein", "redis cache", "12 * 8", "10 km in miles", "convert 5 km to miles", "20% off 500", "days until Christmas", "what day is 25 December 2026", "translate hello to Hindi", "sunrise in Mumbai", "moon phase tonight", "roll a dice", "generate password", "timer 5 minutes", "age born 15 August 2000", "bmi 70 kg 175 cm", "tip 15% on 800", "emi 500000 10% 5 years", "gst on 1000 at 18%"];
 let novaraPlaceholderIdx = 0;
 setInterval(() => {
   const input = document.getElementById("q");
